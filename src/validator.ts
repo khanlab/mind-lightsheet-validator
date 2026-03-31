@@ -56,7 +56,16 @@
  * 3. Add Jest tests to `tests/validator.test.ts`.
  */
 
-import type { FolderNode, ValidationIssue, ValidationReport } from "./types";
+import type {
+  DatasetSummary,
+  FolderNode,
+  PISummary,
+  ProjectSummary,
+  SubjectSummary,
+  SummaryStatus,
+  ValidationIssue,
+  ValidationReport,
+} from "./types";
 import {
   BAG_ID_PATTERN,
   DERIVATIVES_FOLDER_PATTERN,
@@ -393,6 +402,112 @@ function validateDerivativesDirectory(
 }
 
 // ---------------------------------------------------------------------------
+// Dataset summary builders
+// ---------------------------------------------------------------------------
+
+/** Compute the worst-severity status for issues at or below `path`. */
+function computeStatus(path: string, issues: ValidationIssue[]): SummaryStatus {
+  const relevant = issues.filter(
+    (i) => i.path === path || i.path.startsWith(`${path}/`),
+  );
+  if (relevant.some((i) => i.severity === "error")) return "error";
+  if (relevant.some((i) => i.severity === "warning")) return "warning";
+  return "valid";
+}
+
+/**
+ * Build subject summaries from a `raw/` node.
+ *
+ * Subjects (lightsheet_id directories) are deduplicated by name across all
+ * acquisition folders so a subject that appears in both `tif_4x` and `ims_4x`
+ * shows up once with both acquisitions listed.
+ */
+function buildSubjectSummaries(
+  rawNode: FolderNode,
+  issues: ValidationIssue[],
+): SubjectSummary[] {
+  const subjectMap = new Map<string, { paths: string[]; acquisitions: string[] }>();
+
+  for (const acqNode of rawNode.children ?? []) {
+    if (acqNode.type !== "directory") continue;
+    for (const sampleNode of acqNode.children ?? []) {
+      if (sampleNode.type !== "directory") continue;
+      const samplePath = sampleNode.path ?? sampleNode.name;
+      if (!subjectMap.has(sampleNode.name)) {
+        subjectMap.set(sampleNode.name, { paths: [], acquisitions: [] });
+      }
+      const entry = subjectMap.get(sampleNode.name)!;
+      entry.paths.push(samplePath);
+      entry.acquisitions.push(acqNode.name);
+    }
+  }
+
+  const subjects: SubjectSummary[] = [];
+  for (const [id, { paths, acquisitions }] of subjectMap) {
+    const statuses = paths.map((p) => computeStatus(p, issues));
+    const status: SummaryStatus = statuses.includes("error")
+      ? "error"
+      : statuses.includes("warning")
+      ? "warning"
+      : "valid";
+    subjects.push({ id, status, acquisitions });
+  }
+  return subjects;
+}
+
+/** Build a {@link ProjectSummary} from an already-validated project node. */
+function buildProjectSummary(
+  projectNode: FolderNode,
+  issues: ValidationIssue[],
+): ProjectSummary {
+  const projectPath = projectNode.path ?? projectNode.name;
+  const children = projectNode.children ?? [];
+  const rawNode = children.find((c) => c.type === "directory" && c.name === "raw");
+
+  return {
+    id: projectNode.name,
+    path: projectPath,
+    status: computeStatus(projectPath, issues),
+    hasRaw: rawNode !== undefined,
+    hasReadme: children.some((c) => c.type === "file" && c.name === "README.md"),
+    subjects: rawNode ? buildSubjectSummaries(rawNode, issues) : [],
+  };
+}
+
+/** Build a {@link PISummary} from an already-validated PI node. */
+function buildPiSummary(piNode: FolderNode, issues: ValidationIssue[]): PISummary {
+  const piPath = piNode.path ?? piNode.name;
+  const projects: ProjectSummary[] = [];
+
+  for (const projectNode of piNode.children ?? []) {
+    if (projectNode.type !== "directory") continue;
+    projects.push(buildProjectSummary(projectNode, issues));
+  }
+
+  return {
+    id: piNode.name,
+    path: piPath,
+    status: computeStatus(piPath, issues),
+    projects,
+  };
+}
+
+/** Build a {@link DatasetSummary} from the `lightsheet/` root node. */
+function buildDatasetSummary(
+  lightsheetNode: FolderNode,
+  issues: ValidationIssue[],
+): DatasetSummary {
+  const pis: PISummary[] = [];
+
+  for (const piNode of lightsheetNode.children ?? []) {
+    if (piNode.type !== "directory") continue;
+    pis.push(buildPiSummary(piNode, issues));
+  }
+
+  return { pis };
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -449,9 +564,14 @@ export function validate(root: FolderNode): ValidationReport {
     }
   }
 
+  const summary = lightsheetNode
+    ? buildDatasetSummary(lightsheetNode, issues)
+    : undefined;
+
   return {
     valid: issues.every((i) => i.severity !== "error"),
     issues,
+    ...(summary !== undefined && { summary }),
   };
 }
 
@@ -475,9 +595,11 @@ export function validateFromPI(piRoot: FolderNode): ValidationReport {
   const issues: ValidationIssue[] = [];
   const normRoot = normalisePaths(piRoot, "");
   validatePiLevel(normRoot, issues);
+  const summary: DatasetSummary = { pis: [buildPiSummary(normRoot, issues)] };
   return {
     valid: issues.every((i) => i.severity !== "error"),
     issues,
+    summary,
   };
 }
 

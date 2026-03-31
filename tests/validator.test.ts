@@ -1283,3 +1283,280 @@ describe("validateFromProject", () => {
     expect(report.valid).toBe(false);
   });
 });
+
+// ---------------------------------------------------------------------------
+// 19. DatasetSummary — validate()
+// ---------------------------------------------------------------------------
+
+describe("DatasetSummary – validate()", () => {
+  test("summary is present on the report for a full lightsheet tree", () => {
+    const report = validate(buildValidTree());
+    expect(report.summary).toBeDefined();
+  });
+
+  test("summary has one PI entry matching the pi_id", () => {
+    const report = validate(buildValidTree({ piName: "prado" }));
+    expect(report.summary!.pis).toHaveLength(1);
+    expect(report.summary!.pis[0].id).toBe("prado");
+  });
+
+  test("PI summary has one project entry matching the project_id", () => {
+    const report = validate(buildValidTree({ projectName: "myproject" }));
+    const pi = report.summary!.pis[0];
+    expect(pi.projects).toHaveLength(1);
+    expect(pi.projects[0].id).toBe("myproject");
+  });
+
+  test("project summary reflects hasRaw and hasReadme for a valid tree", () => {
+    const report = validate(buildValidTree());
+    const project = report.summary!.pis[0].projects[0];
+    expect(project.hasRaw).toBe(true);
+    expect(project.hasReadme).toBe(true);
+  });
+
+  test("project summary hasReadme is false when README.md is absent", () => {
+    const report = validate(
+      buildValidTree({
+        projectChildren: [
+          { name: "raw", type: "directory", children: [] },
+        ],
+      }),
+    );
+    const project = report.summary!.pis[0].projects[0];
+    expect(project.hasReadme).toBe(false);
+  });
+
+  test("project summary hasRaw is false when raw/ is absent", () => {
+    const report = validate(
+      buildValidTree({
+        projectChildren: [{ name: "README.md", type: "file" }],
+      }),
+    );
+    const project = report.summary!.pis[0].projects[0];
+    expect(project.hasRaw).toBe(false);
+  });
+
+  test("subjects list is populated from raw acquisition folders", () => {
+    const report = validate(buildValidTree());
+    const subjects = report.summary!.pis[0].projects[0].subjects;
+    expect(subjects).toHaveLength(1);
+    expect(subjects[0].id).toBe("a_AS134F1");
+  });
+
+  test("subject acquisitions list contains the acquisition folder name", () => {
+    const report = validate(buildValidTree());
+    const subject = report.summary!.pis[0].projects[0].subjects[0];
+    expect(subject.acquisitions).toContain("tif_4x");
+  });
+
+  test("subject appearing in multiple acquisition folders is listed once with both acquisitions", () => {
+    const tree = buildValidTree({
+      rawChildren: [
+        {
+          name: "tif_4x",
+          type: "directory",
+          children: [
+            {
+              name: "a_AS134F1",
+              type: "directory",
+              children: [{ name: "tile.tif", type: "file" }],
+            },
+          ],
+        },
+        {
+          name: "ims_4x",
+          type: "directory",
+          children: [
+            {
+              name: "a_AS134F1",
+              type: "directory",
+              children: [{ name: "sample.ims", type: "file" }],
+            },
+          ],
+        },
+      ],
+    });
+    const report = validate(tree);
+    const subjects = report.summary!.pis[0].projects[0].subjects;
+    expect(subjects).toHaveLength(1);
+    expect(subjects[0].acquisitions).toContain("tif_4x");
+    expect(subjects[0].acquisitions).toContain("ims_4x");
+  });
+
+  test("valid node has status 'valid'", () => {
+    const report = validate(buildValidTree());
+    const pi = report.summary!.pis[0];
+    expect(pi.status).toBe("valid");
+    expect(pi.projects[0].status).toBe("valid");
+    expect(pi.projects[0].subjects[0].status).toBe("valid");
+  });
+
+  test("PI with invalid name has status 'error' in summary", () => {
+    const report = validate(buildValidTree({ piName: "PI_Bad" }));
+    const pi = report.summary!.pis[0];
+    expect(pi.status).toBe("error");
+  });
+
+  test("project with invalid name has status 'error' in summary", () => {
+    const report = validate(buildValidTree({ projectName: "Bad-Project" }));
+    const project = report.summary!.pis[0].projects[0];
+    expect(project.status).toBe("error");
+  });
+
+  test("subject in ims_ folder with multiple .ims files has status 'warning'", () => {
+    const tree = buildValidTree({
+      rawChildren: [
+        {
+          name: "ims_4x",
+          type: "directory",
+          children: [
+            {
+              name: "a_AS134F1",
+              type: "directory",
+              children: [
+                { name: "one.ims", type: "file" },
+                { name: "two.ims", type: "file" },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    const report = validate(tree);
+    const subject = report.summary!.pis[0].projects[0].subjects[0];
+    expect(subject.status).toBe("warning");
+  });
+
+  test("summary is absent when no lightsheet/ root is found", () => {
+    const report = validate({
+      name: "notlightsheet",
+      type: "directory",
+      children: [],
+    });
+    expect(report.summary).toBeUndefined();
+  });
+
+  test("multiple PIs and projects appear in summary", () => {
+    const tree: FolderNode = {
+      name: "lightsheet",
+      type: "directory",
+      children: [
+        {
+          name: "prado",
+          type: "directory",
+          children: [
+            {
+              name: "project_a",
+              type: "directory",
+              children: [
+                { name: "README.md", type: "file" },
+                { name: "raw", type: "directory", children: [] },
+              ],
+            },
+          ],
+        },
+        {
+          name: "smith",
+          type: "directory",
+          children: [
+            {
+              name: "project_b",
+              type: "directory",
+              children: [
+                { name: "README.md", type: "file" },
+                { name: "raw", type: "directory", children: [] },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const report = validate(tree);
+    const piIds = report.summary!.pis.map((p) => p.id);
+    expect(piIds).toContain("prado");
+    expect(piIds).toContain("smith");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 20. DatasetSummary — validateFromPI()
+// ---------------------------------------------------------------------------
+
+describe("DatasetSummary – validateFromPI()", () => {
+  test("summary is present for validateFromPI", () => {
+    const piNode: FolderNode = {
+      name: "prado",
+      type: "directory",
+      children: [
+        {
+          name: "myproject",
+          type: "directory",
+          children: [
+            { name: "README.md", type: "file" },
+            { name: "raw", type: "directory", children: [] },
+          ],
+        },
+      ],
+    };
+    const report = validateFromPI(piNode);
+    expect(report.summary).toBeDefined();
+    expect(report.summary!.pis).toHaveLength(1);
+    expect(report.summary!.pis[0].id).toBe("prado");
+  });
+
+  test("validateFromPI summary contains project and subject info", () => {
+    const piNode: FolderNode = {
+      name: "prado",
+      type: "directory",
+      children: [
+        {
+          name: "myproject",
+          type: "directory",
+          children: [
+            { name: "README.md", type: "file" },
+            {
+              name: "raw",
+              type: "directory",
+              children: [
+                {
+                  name: "tif_4x",
+                  type: "directory",
+                  children: [
+                    {
+                      name: "a_AS134F1",
+                      type: "directory",
+                      children: [{ name: "tile.tif", type: "file" }],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const report = validateFromPI(piNode);
+    const pi = report.summary!.pis[0];
+    expect(pi.projects[0].id).toBe("myproject");
+    expect(pi.projects[0].subjects[0].id).toBe("a_AS134F1");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 21. DatasetSummary — validateFromProject() (no summary)
+// ---------------------------------------------------------------------------
+
+describe("DatasetSummary – validateFromProject()", () => {
+  test("summary is absent for validateFromProject", () => {
+    const projectNode: FolderNode = {
+      name: "myproject",
+      type: "directory",
+      children: [
+        { name: "README.md", type: "file" },
+        { name: "raw", type: "directory", children: [] },
+      ],
+    };
+    const report = validateFromProject(projectNode);
+    expect(report.summary).toBeUndefined();
+  });
+});
