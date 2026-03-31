@@ -8,7 +8,9 @@
     "build": "tsc",
     "test": "jest",
     "test:coverage": "jest --coverage",
-    "lint": "eslint src tests --ext .ts"
+    "lint": "eslint src tests --ext .ts",
+    "web:dev": "cd web && npx vite",
+    "web:build": "cd web && npm run build"
   },
   "license": "MIT",
   "devDependencies": {
