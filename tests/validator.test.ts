@@ -867,3 +867,106 @@ describe("End-to-end: caller passes filesystem root with lightsheet/ child", () 
     expect(issuesFor(report.issues, "LIGHTSHEET_ROOT")).toHaveLength(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// 16. .zarr folder handling
+// ---------------------------------------------------------------------------
+
+describe(".zarr folder: validator does not recurse into zarr stores", () => {
+  /**
+   * Build a deeply-nested .zarr tree simulating a Zarr store with many
+   * internal chunk directories.
+   */
+  function buildZarrChildren(depth: number): FolderNode[] {
+    if (depth === 0) return [{ name: "0", type: "file" }];
+    return [
+      { name: "0", type: "directory", children: buildZarrChildren(depth - 1) },
+      { name: "1", type: "directory", children: buildZarrChildren(depth - 1) },
+    ];
+  }
+
+  test("zarr store inside derivatives is not recursed into and does not produce spurious issues", () => {
+    const tree: FolderNode = buildValidTree({
+      projectChildren: [
+        { name: "README.md", type: "file" },
+        { name: "raw", type: "directory", children: [
+          { name: "tif_4x", type: "directory", children: [
+            { name: "a_AS134F1", type: "directory", children: [{ name: "tile_001.tif", type: "file" }] },
+          ]},
+        ]},
+        {
+          name: "derivatives",
+          type: "directory",
+          children: [
+            {
+              name: "spimquant_v0.4.0",
+              type: "directory",
+              children: [
+                {
+                  name: "output.zarr",
+                  type: "directory",
+                  // Simulate a deeply nested Zarr store
+                  children: buildZarrChildren(5),
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    const report = validate(tree);
+    expect(report.valid).toBe(true);
+    expect(report.issues).toHaveLength(0);
+  });
+
+  test("zarr store at the project level does not cause issues for deeply nested contents", () => {
+    const tree: FolderNode = buildValidTree({
+      projectChildren: [
+        { name: "README.md", type: "file" },
+        { name: "raw", type: "directory", children: [
+          { name: "tif_4x", type: "directory", children: [
+            { name: "a_AS134F1", type: "directory", children: [{ name: "tile_001.tif", type: "file" }] },
+          ]},
+        ]},
+        // A .zarr folder at the project level should not be recursed into
+        {
+          name: "dataset.zarr",
+          type: "directory",
+          children: buildZarrChildren(5),
+        },
+      ],
+    });
+    const report = validate(tree);
+    expect(report.valid).toBe(true);
+    expect(report.issues).toHaveLength(0);
+  });
+
+  test("zarr store with many children is treated as a leaf (children stripped)", () => {
+    // Provide a tree where the zarr store has many children
+    // The validator should not emit any issues originating from inside the zarr store
+    const zarrChildren = Array.from({ length: 100 }, (_, i) => ({
+      name: String(i),
+      type: "directory" as const,
+      children: Array.from({ length: 100 }, (_, j) => ({
+        name: String(j),
+        type: "file" as const,
+      })),
+    }));
+
+    const tree: FolderNode = buildValidTree({
+      projectChildren: [
+        { name: "README.md", type: "file" },
+        { name: "raw", type: "directory", children: [] },
+        {
+          name: "big.zarr",
+          type: "directory",
+          children: zarrChildren,
+        },
+      ],
+    });
+    // Should produce no issues about contents inside big.zarr
+    const report = validate(tree);
+    expect(report.valid).toBe(true);
+    expect(report.issues).toHaveLength(0);
+  });
+});
