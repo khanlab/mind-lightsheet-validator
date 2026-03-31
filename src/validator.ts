@@ -428,3 +428,55 @@ export function validate(root: FolderNode): ValidationReport {
     issues,
   };
 }
+
+/**
+ * Validate an abstract folder tree starting from a **PI-level directory**
+ * (`lightsheet/<pi_id>/`).
+ *
+ * This is an alternative entry-point when the caller only has access to a
+ * single PI directory rather than the full lightsheet root.  The
+ * `LIGHTSHEET_ROOT` rule is not checked.
+ *
+ * @param piRoot - The PI-level directory node to validate.
+ * @returns A {@link ValidationReport} with all findings.
+ *
+ * @example
+ * ```ts
+ * const report = validateFromPI({ name: "prado", type: "directory", children: [] });
+ * ```
+ */
+export function validateFromPI(piRoot: FolderNode): ValidationReport {
+  const issues: ValidationIssue[] = [];
+  const normRoot = normalisePaths(piRoot, "");
+  validatePiLevel(normRoot, issues);
+  return {
+    valid: issues.every((i) => i.severity !== "error"),
+    issues,
+  };
+}
+
+/**
+ * Validate an abstract folder tree starting from a **project-level directory**
+ * (`lightsheet/<pi_id>/<project_id>/`).
+ *
+ * This is an alternative entry-point when the caller only has access to a
+ * single project directory.  The `LIGHTSHEET_ROOT` and `PI_ID_LOWERCASE`
+ * rules are not checked.
+ *
+ * @param projectRoot - The project-level directory node to validate.
+ * @returns A {@link ValidationReport} with all findings.
+ *
+ * @example
+ * ```ts
+ * const report = validateFromProject({ name: "mouse_app_batch1", type: "directory", children: [] });
+ * ```
+ */
+export function validateFromProject(projectRoot: FolderNode): ValidationReport {
+  const issues: ValidationIssue[] = [];
+  const normRoot = normalisePaths(projectRoot, "");
+  validateProjectLevel(normRoot, issues);
+  return {
+    valid: issues.every((i) => i.severity !== "error"),
+    issues,
+  };
+}
