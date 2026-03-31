@@ -113,10 +113,10 @@ function resetToPickerView(): void {
 // Results rendering
 // ---------------------------------------------------------------------------
 
-function renderBadge(label: string, count: number, variant: string): HTMLSpanElement {
+function renderBadge(label: string, count: number | undefined, variant: string): HTMLSpanElement {
   const badge = document.createElement("span");
   badge.className = `badge badge--${variant}`;
-  badge.textContent = `${label}: ${count}`;
+  badge.textContent = count !== undefined ? `${label}: ${count}` : label;
   return badge;
 }
 
@@ -171,9 +171,9 @@ function renderResults(report: ValidationReport): void {
   const infos = report.issues.filter((i) => i.severity === "info").length;
 
   if (report.valid && errors === 0) {
-    summaryRow.appendChild(renderBadge("✅ Valid", 1, "success"));
+    summaryRow.appendChild(renderBadge("✅ Valid", undefined, "success"));
   } else {
-    summaryRow.appendChild(renderBadge("❌ Invalid", 1, "error"));
+    summaryRow.appendChild(renderBadge("❌ Invalid", undefined, "error"));
   }
   if (errors > 0) summaryRow.appendChild(renderBadge("Errors", errors, "error"));
   if (warnings > 0) summaryRow.appendChild(renderBadge("Warnings", warnings, "warning"));
