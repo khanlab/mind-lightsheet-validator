@@ -196,6 +196,14 @@ Inside each tif_* or ims_* folder, directories are named by `lightsheet_id`:
 
 - `modifier_id` can be used to identify additional information, such as specific hemispheres, or other ROIs 
 - lightsheet_id MUST contain no whitespace (e.g. spaces)
+
+- each of these folders must **only** contain folders named by lightsheet_id, and the same
+lightsheet_id must be used for the same samples across different folders, e.g. tif_4x, ims_4x_stitched.
+- the validator should output an error if there are folders inside that violate lightsheet_id naming standards
+- the validator should warn if there are lightsheet_id names that do not appear in all folders
+- the validator should provide a list of lightsheet_id names inside each tif_* or ims_* folder
+- the validator should suggest if a naming error may be present, e.g. lettercase of bag_id, or subject_id with different prefix.
+
 ---
 
 ### 6.1 bag_id
@@ -228,20 +236,26 @@ Examples:
 
 ---
 
-### 6.3 Contents of Sample Folders
+### 6.3 Contents of tif Folders
 
-TIFF folders:
+- folders have lightsheet_id naming
 - Contain TIFF tiles directly
 - MUST NOT contain additional subdirectories
 - TIFF files MUST NOT be renamed
 
-Imaris folders:
-- Contain one or more .ims files
+---
+
+### 6.4 Contents of ims folders
+
+- folders have lightsheet_id naming
+- should contain only one .ims file
+- more than one is allowed if variations in stitching or conversion are being tested (validator should give warning)
 - .ims files MAY be renamed if needed
 
-No specific filename convention is enforced inside these folders.
 
----
+--- 
+
+
 
 ## 7. bids/ — BIDS-Formatted Lightsheet Dataset
 
