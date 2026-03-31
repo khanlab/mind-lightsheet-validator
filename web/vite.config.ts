@@ -3,7 +3,7 @@ import { resolve } from "path";
 
 export default defineConfig({
   root: ".",
-  // VITE_BASE is set to the GitHub Pages sub-path in CI (e.g. /mind-lightsheet-folder-validator/).
+  // VITE_BASE is set to the GitHub Pages sub-path in CI (e.g. /mind-lightsheet-validator/).
   // Falls back to "/" for local development.
   base: process.env.VITE_BASE ?? "/",
   resolve: {

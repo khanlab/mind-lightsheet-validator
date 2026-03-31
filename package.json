@@ -1,5 +1,5 @@
 {
-  "name": "mind-lightsheet-folder-validator",
+  "name": "mind-lightsheet-validator",
   "version": "1.0.0",
   "description": "Validator for file/folder naming standards for raw lightsheet data in the MIND project",
   "main": "dist/index.js",
@@ -22,5 +22,8 @@
     "jest": "^29.7.0",
     "ts-jest": "^29.2.6",
     "typescript": "^5.8.2"
+  },
+  "dependencies": {
+    "vite": "^6.4.1"
   }
 }
