@@ -9,5 +9,5 @@
  * ```
  */
 export { validate, validateFromPI, validateFromProject } from "./validator";
-export type { FolderNode, ValidationIssue, ValidationReport, Severity } from "./types";
+export type { FolderNode, ValidationIssue, ValidationReport, Severity, SummaryStatus, SubjectSummary, ProjectSummary, PISummary, DatasetSummary } from "./types";
 export { RULES, PI_ID_PATTERN, PROJECT_ID_PATTERN, RAW_FOLDER_PATTERN, BAG_ID_PATTERN, SUBJECT_ID_PATTERN, LIGHTSHEET_ID_PATTERN, DERIVATIVES_FOLDER_PATTERN } from "./rules";

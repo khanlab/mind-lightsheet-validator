@@ -531,6 +531,96 @@ details[open] > .rule-summary-toggle::before {
   color: var(--color-error);
 }
 
+/* ---- Dataset hierarchy summary ----------------------------------------- */
+.dataset-summary-details {
+  margin-bottom: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.dataset-summary-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem;
+  background: var(--color-bg);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.dataset-summary-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.dataset-summary-toggle::before {
+  content: "▶";
+  font-size: 0.7rem;
+  transition: transform 0.15s;
+  display: inline-block;
+}
+
+details[open] > .dataset-summary-toggle::before {
+  transform: rotate(90deg);
+}
+
+/* ---- Dataset tree -------------------------------------------------------- */
+.dataset-tree,
+.dataset-tree ul {
+  list-style: none;
+  padding-left: 1.4rem;
+  margin: 0;
+}
+
+.dataset-tree {
+  padding: 0.75rem 1rem;
+  font-size: 0.87rem;
+}
+
+.dataset-tree__node {
+  padding: 0.2rem 0;
+  line-height: 1.5;
+}
+
+.dataset-tree__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.dataset-tree__id {
+  font-family: monospace;
+  font-size: 0.88rem;
+}
+
+.dataset-tree__meta {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.dataset-tree__acquisitions {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  font-family: monospace;
+}
+
+.dataset-tree__node--error > .dataset-tree__label > .dataset-tree__id {
+  color: var(--color-error);
+}
+
+.dataset-tree__node--warning > .dataset-tree__label > .dataset-tree__id {
+  color: var(--color-warning);
+}
+
+.dataset-tree__node--valid > .dataset-tree__label > .dataset-tree__id {
+  color: var(--color-success);
+}
+
 /* ---- Issue groups -------------------------------------------------------- */
 .issue-group {
   margin-bottom: 0.75rem;

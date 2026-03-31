@@ -8,7 +8,7 @@
 
 import { validate, validateFromPI, validateFromProject } from "@validator/validator";
 import { RULES } from "@validator/rules";
-import type { FolderNode, ValidationIssue, ValidationReport } from "@validator/types";
+import type { FolderNode, ValidationIssue, ValidationReport, SummaryStatus } from "@validator/types";
 import "./style.css";
 
 // ---------------------------------------------------------------------------
@@ -38,6 +38,8 @@ const ruleSummaryDiv = document.getElementById("rule-summary") as HTMLDivElement
 const exportJsonBtn = document.getElementById("export-json-btn") as HTMLButtonElement;
 const exportCsvBtn = document.getElementById("export-csv-btn") as HTMLButtonElement;
 const validationLevelSelect = document.getElementById("validation-level") as HTMLSelectElement;
+const datasetSummaryDiv = document.getElementById("dataset-summary") as HTMLDivElement;
+const datasetSummaryDetails = document.getElementById("dataset-summary-details") as HTMLDetailsElement;
 
 // ---------------------------------------------------------------------------
 // UI state
@@ -188,6 +190,7 @@ function renderResults(report: ValidationReport): void {
   });
 
   renderRuleSummary(report);
+  renderDatasetSummary(report);
   refreshIssueList();
 }
 
@@ -249,6 +252,86 @@ function renderRuleSummary(report: ValidationReport): void {
   }
   table.appendChild(tbody);
   ruleSummaryDiv.appendChild(table);
+}
+
+// ---------------------------------------------------------------------------
+// Dataset hierarchy summary
+// ---------------------------------------------------------------------------
+
+function statusIcon(status: SummaryStatus): string {
+  return status === "valid" ? "✅" : status === "warning" ? "⚠️" : "❌";
+}
+
+function renderDatasetSummary(report: ValidationReport): void {
+  datasetSummaryDiv.innerHTML = "";
+
+  const summary = report.summary;
+  if (!summary || summary.pis.length === 0) {
+    datasetSummaryDetails.classList.add("hidden");
+    return;
+  }
+
+  datasetSummaryDetails.classList.remove("hidden");
+
+  const tree = document.createElement("ul");
+  tree.className = "dataset-tree";
+
+  for (const pi of summary.pis) {
+    const piLi = document.createElement("li");
+    piLi.className = `dataset-tree__node dataset-tree__node--${pi.status}`;
+
+    const piLabel = document.createElement("span");
+    piLabel.className = "dataset-tree__label";
+    piLabel.innerHTML =
+      `📂 <strong class="dataset-tree__id">${pi.id}</strong> ${statusIcon(pi.status)}`;
+    piLi.appendChild(piLabel);
+
+    if (pi.projects.length > 0) {
+      const projectsUl = document.createElement("ul");
+
+      for (const project of pi.projects) {
+        const projectLi = document.createElement("li");
+        projectLi.className = `dataset-tree__node dataset-tree__node--${project.status}`;
+
+        const readmeIcon = project.hasReadme ? "✅" : "❌";
+        const rawIcon = project.hasRaw ? "✅" : "❌";
+
+        const projectLabel = document.createElement("span");
+        projectLabel.className = "dataset-tree__label";
+        projectLabel.innerHTML =
+          `📁 <strong class="dataset-tree__id">${project.id}</strong> ${statusIcon(project.status)}` +
+          ` <span class="dataset-tree__meta">README: ${readmeIcon} | raw: ${rawIcon}</span>`;
+        projectLi.appendChild(projectLabel);
+
+        if (project.subjects.length > 0) {
+          const subjectsUl = document.createElement("ul");
+
+          for (const subject of project.subjects) {
+            const subjectLi = document.createElement("li");
+            subjectLi.className = `dataset-tree__node dataset-tree__node--${subject.status}`;
+
+            const subjectLabel = document.createElement("span");
+            subjectLabel.className = "dataset-tree__label";
+            subjectLabel.innerHTML =
+              `🔬 <strong class="dataset-tree__id">${subject.id}</strong> ${statusIcon(subject.status)}` +
+              ` <span class="dataset-tree__acquisitions">${subject.acquisitions.join(", ")}</span>`;
+            subjectLi.appendChild(subjectLabel);
+            subjectsUl.appendChild(subjectLi);
+          }
+
+          projectLi.appendChild(subjectsUl);
+        }
+
+        projectsUl.appendChild(projectLi);
+      }
+
+      piLi.appendChild(projectsUl);
+    }
+
+    tree.appendChild(piLi);
+  }
+
+  datasetSummaryDiv.appendChild(tree);
 }
 
 // ---------------------------------------------------------------------------
