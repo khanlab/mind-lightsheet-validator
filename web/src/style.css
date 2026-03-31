@@ -324,6 +324,212 @@ body {
   font-size: 1.05rem;
 }
 
+/* ---- Results controls (filter / group-by / export) -------------------- */
+.results-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.filter-label,
+.groupby-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 9999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.filter-btn:hover:not(.filter-btn--active) {
+  background: var(--color-bg);
+  border-color: var(--color-secondary);
+}
+
+.filter-btn--active {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+.groupby-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.select {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.select:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.export-group {
+  display: flex;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+.btn--export {
+  background: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius);
+  padding: 0.3rem 0.7rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn--export:hover {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+/* ---- Rule status summary ----------------------------------------------- */
+.rule-summary-details {
+  margin-bottom: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.rule-summary-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem;
+  background: var(--color-bg);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.rule-summary-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.rule-summary-toggle::before {
+  content: "▶";
+  font-size: 0.7rem;
+  transition: transform 0.15s;
+  display: inline-block;
+}
+
+details[open] > .rule-summary-toggle::before {
+  transform: rotate(90deg);
+}
+
+.rule-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.rule-summary-table th {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.rule-summary-table td {
+  padding: 0.45rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+}
+
+.rule-summary-table tr:last-child td {
+  border-bottom: none;
+}
+
+.rule-summary-table tr:hover td {
+  background: var(--color-bg);
+}
+
+.rule-id {
+  font-family: monospace;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.rule-count {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.rule-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.rule-status--pass {
+  color: var(--color-success);
+}
+
+.rule-status--warn {
+  color: var(--color-warning);
+}
+
+.rule-status--fail {
+  color: var(--color-error);
+}
+
+/* ---- Issue groups -------------------------------------------------------- */
+.issue-group {
+  margin-bottom: 0.75rem;
+}
+
+.issue-group__header {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 0.5rem;
+}
+
 /* ---- Utility ----------------------------------------------------------- */
 .hidden {
   display: none !important;
