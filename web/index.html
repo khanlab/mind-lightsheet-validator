@@ -50,8 +50,66 @@
           <!-- Summary badges -->
           <div class="summary-row" id="summary-row"></div>
 
+          <!-- Controls: filter, group-by, export -->
+          <div class="results-controls">
+            <div class="filter-group" role="group" aria-label="Filter issues by severity">
+              <span class="filter-label" id="filter-label">Filter:</span>
+              <button
+                class="filter-btn filter-btn--active"
+                data-filter="all"
+                type="button"
+                aria-pressed="true"
+                aria-describedby="filter-label"
+              >All</button>
+              <button
+                class="filter-btn"
+                data-filter="error"
+                type="button"
+                aria-pressed="false"
+                aria-describedby="filter-label"
+              >Errors</button>
+              <button
+                class="filter-btn"
+                data-filter="warning"
+                type="button"
+                aria-pressed="false"
+                aria-describedby="filter-label"
+              >Warnings</button>
+              <button
+                class="filter-btn"
+                data-filter="info"
+                type="button"
+                aria-pressed="false"
+                aria-describedby="filter-label"
+              >Info</button>
+            </div>
+            <div class="groupby-row">
+              <label class="groupby-label" for="group-by">Group by:</label>
+              <select id="group-by" class="select" aria-label="Group issues by">
+                <option value="severity">Severity</option>
+                <option value="rule">Rule</option>
+                <option value="path">Location</option>
+                <option value="none">None (flat)</option>
+              </select>
+            </div>
+            <div class="export-group" role="group" aria-label="Export report">
+              <button id="export-json-btn" class="btn btn--export" type="button">
+                ⬇ JSON
+              </button>
+              <button id="export-csv-btn" class="btn btn--export" type="button">
+                ⬇ CSV
+              </button>
+            </div>
+          </div>
+
+          <!-- Rule status summary (collapsible) -->
+          <details class="rule-summary-details" id="rule-summary-details">
+            <summary class="rule-summary-toggle">📋 Rule Status Summary</summary>
+            <div id="rule-summary" role="table" aria-label="Rule pass/fail status"></div>
+          </details>
+
           <!-- Issue list -->
-          <div id="issue-list"></div>
+          <div id="issue-list" aria-live="polite" aria-label="Validation issues"></div>
 
           <!-- Re-run button -->
           <button id="rerun-btn" class="btn btn--secondary" type="button">
