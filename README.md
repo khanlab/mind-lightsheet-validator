@@ -197,12 +197,11 @@ Inside each tif_* or ims_* folder, directories are named by `lightsheet_id`:
 - `modifier_id` can be used to identify additional information, such as specific hemispheres, or other ROIs 
 - lightsheet_id MUST contain no whitespace (e.g. spaces)
 
-- each of these folders must **only** contain folders named by lightsheet_id, and the same
-  lightsheet_id must be used for the same samples across different folders, e.g. tif_4x, ims_4x_stitched.
-- the validator should output an error if there are folders inside that violate lightsheet_id naming standards
-- the validator should warn if there are lightsheet_id names that do not appear in all folders
-- the validator should provide a list of lightsheet_id names inside each tif_* or ims_* folder
-- the validator should suggest if a naming error may be present, e.g. lettercase of bag_id, or subject_id with different prefix.
+- each tif_* or ims_* acquisition folder MUST **only** contain subfolders named by `lightsheet_id`
+- the same `lightsheet_id` SHOULD be used for the same samples across different acquisition folders (e.g. tif_4x, ims_4x_stitched)
+- as a quality-control step, users SHOULD check that every expected `lightsheet_id` appears in all corresponding tif_* / ims_* folders
+- it is often helpful to list all `lightsheet_id` names per folder and compare them to identify missing or extra samples
+- when reviewing names, watch for likely mistakes such as different lettercase in `bag_id` or differing prefixes in `subject_id` that may indicate an unintentional mismatch
 
 ---
 
