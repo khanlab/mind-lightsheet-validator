@@ -252,7 +252,7 @@ Examples:
 - .ims files MAY be renamed if needed
 
 
---- 
+---
 
 
 
