@@ -80,6 +80,10 @@ function joinPath(parent: string, name: string): string {
 /** Resolve the `path` field for every node in the tree (mutates a copy). */
 function normalisePaths(node: FolderNode, parentPath: string): FolderNode {
   const currentPath = joinPath(parentPath, node.name);
+  // Do not recurse into .zarr stores — they can contain millions of files.
+  if (node.type === "directory" && node.name.endsWith(".zarr")) {
+    return { ...node, path: currentPath, children: [] };
+  }
   const children = node.children?.map((c) => normalisePaths(c, currentPath));
   return { ...node, path: currentPath, children };
 }

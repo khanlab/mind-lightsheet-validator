@@ -57,9 +57,14 @@ async function traverseDirectory(
 
   for await (const [name, entry] of handle) {
     if (entry.kind === "directory") {
-      onProgress?.(`Scanning ${name}/…`);
-      const child = await traverseDirectory(entry as FileSystemDirectoryHandle, onProgress);
-      children.push(child);
+      if (name.endsWith(".zarr")) {
+        // Do not recurse into .zarr stores — they can contain millions of files.
+        children.push({ name, type: "directory", children: [] });
+      } else {
+        onProgress?.(`Scanning ${name}/…`);
+        const child = await traverseDirectory(entry as FileSystemDirectoryHandle, onProgress);
+        children.push(child);
+      }
     } else {
       children.push({ name, type: "file" });
     }
