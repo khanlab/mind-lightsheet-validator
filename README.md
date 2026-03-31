@@ -1,7 +1,7 @@
-# mind-lightsheet-folder-validator
+# mind-lightsheet-validator
 
-[![GitHub Pages](https://img.shields.io/badge/Browser%20Validator-GitHub%20Pages-blue?logo=github)](https://khanlab.github.io/mind-lightsheet-folder-validator/)
-[![Deploy](https://github.com/khanlab/mind-lightsheet-folder-validator/actions/workflows/deploy.yml/badge.svg)](https://github.com/khanlab/mind-lightsheet-folder-validator/actions/workflows/deploy.yml)
+[![GitHub Pages](https://img.shields.io/badge/Browser%20Validator-GitHub%20Pages-blue?logo=github)](https://khanlab.github.io/mind-lightsheet-validator/)
+[![Deploy](https://github.com/khanlab/mind-lightsheet-validator/actions/workflows/deploy.yml/badge.svg)](https://github.com/khanlab/mind-lightsheet-validator/actions/workflows/deploy.yml)
 
 Validator for file/folder naming standards for raw lightsheet data in the MIND project.
 
@@ -13,7 +13,7 @@ Validator for file/folder naming standards for raw lightsheet data in the MIND p
 
 The easiest way to validate your folder structure is the **browser-based validator**, hosted on GitHub Pages — no installation required.
 
-**🌐 [Launch the Browser Validator](https://khanlab.github.io/mind-lightsheet-folder-validator/)**
+**🌐 [Launch the Browser Validator](https://khanlab.github.io/mind-lightsheet-validator/)**
 
 ### Getting Started
 
@@ -96,7 +96,7 @@ npm test
 ## Contributing
 
 Contributions are welcome! Please open a pull request or an issue on
-[GitHub](https://github.com/khanlab/mind-lightsheet-folder-validator/issues).
+[GitHub](https://github.com/khanlab/mind-lightsheet-validator/issues).
 
 ### Adding or Modifying Validation Rules
 
@@ -118,7 +118,7 @@ dev server.
 ### Reporting Bugs
 
 Please open an issue at
-👉 <https://github.com/khanlab/mind-lightsheet-folder-validator/issues>
+👉 <https://github.com/khanlab/mind-lightsheet-validator/issues>
 
 When reporting a bug, include:
 - Browser name and version
@@ -130,7 +130,7 @@ When reporting a bug, include:
 
 ## Changelog / Roadmap
 
-See [issue #4](https://github.com/khanlab/mind-lightsheet-folder-validator/issues/4) for
+See [issue #4](https://github.com/khanlab/mind-lightsheet-validator/issues/4) for
 the full roadmap and release milestones.
 
 ---
