@@ -1,7 +1,141 @@
 # mind-lightsheet-folder-validator
-Validator for file/folder naming standards for raw lightsheet data in the MIND project
 
-# Lightsheet File & Folder Standards
+[![GitHub Pages](https://img.shields.io/badge/Browser%20Validator-GitHub%20Pages-blue?logo=github)](https://khanlab.github.io/mind-lightsheet-folder-validator/)
+[![Deploy](https://github.com/khanlab/mind-lightsheet-folder-validator/actions/workflows/deploy.yml/badge.svg)](https://github.com/khanlab/mind-lightsheet-folder-validator/actions/workflows/deploy.yml)
+
+Validator for file/folder naming standards for raw lightsheet data in the MIND project.
+
+---
+
+# Part 1 — Running the Validator
+
+## Browser Validator
+
+The easiest way to validate your folder structure is the **browser-based validator**, hosted on GitHub Pages — no installation required.
+
+**🌐 [Launch the Browser Validator](https://khanlab.github.io/mind-lightsheet-folder-validator/)**
+
+### Getting Started
+
+1. Open the link above in a supported browser (see [Supported Browsers](#supported-browsers) below).
+2. Select a **Validation level**:
+   - **Lightsheet root** — validate the full `lightsheet/` tree
+   - **PI directory** — validate a single PI folder (one level down)
+   - **Project directory** — validate a single project folder (two levels down)
+3. Click **Choose folder…** and select the directory on your computer.
+4. Review the results — issues are grouped by severity (errors, warnings, info), and can be re-grouped by rule or location.
+5. Optionally **export** the full report as JSON or CSV for sharing or archiving.
+
+### Supported Browsers
+
+| Browser | Support |
+|---------|---------|
+| Chrome ≥ 86 | ✅ Full support |
+| Edge ≥ 86 | ✅ Full support |
+| Firefox | ❌ File System Access API not supported |
+| Safari | ❌ File System Access API not supported |
+
+> The validator requires the [File System Access API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_Access_API)
+> (`showDirectoryPicker`). Currently only Chromium-based browsers (Chrome, Edge) support this API.
+
+### Security & Privacy
+
+- **No data leaves your computer.** The validator runs entirely in your browser; no files or folder names are uploaded to any server.
+- The page is served as a static site over HTTPS from GitHub Pages.
+- Read access to the selected folder is requested only for the duration of the validation session and is not persisted.
+
+### Limitations
+
+- Requires Chrome or Edge (v86+); Firefox and Safari are not supported.
+- Very large folder trees (thousands of directories) may take a moment to scan.
+- `.zarr` directories are not recursed into — they are treated as opaque data stores and only their presence is noted.
+
+---
+
+## Running Locally / Developer Setup
+
+### Prerequisites
+
+- Node.js ≥ 18
+- npm ≥ 9
+
+### Install Dependencies
+
+```bash
+# Root library (validator engine + tests)
+npm install
+
+# Browser UI
+cd web && npm install
+```
+
+### Start the Dev Server
+
+```bash
+npm run web:dev
+```
+
+The web app will be available at `http://localhost:5173`.
+
+### Build for Production
+
+```bash
+npm run web:build
+```
+
+Output is written to `web/dist/`.
+
+### Run Tests
+
+```bash
+npm test
+```
+
+---
+
+## Contributing
+
+Contributions are welcome! Please open a pull request or an issue on
+[GitHub](https://github.com/khanlab/mind-lightsheet-folder-validator/issues).
+
+### Adding or Modifying Validation Rules
+
+Rules are defined in `src/rules.ts`. Each rule is a plain object with:
+
+- `id` — unique identifier following the pattern `<LEVEL>_NNN` (e.g. `PI_001`, `RAW_003`)
+- `description` — short human-readable description of what the rule checks
+- `severity` — `"error"`, `"warning"`, or `"info"`
+
+Rule logic is applied in `src/validator.ts`. After adding or changing a rule, add
+corresponding test cases in `tests/validator.test.ts` and run `npm test` to verify.
+
+### UI Tweaks
+
+The browser UI lives in `web/src/`. The main entry point is `web/src/main.ts` and
+styles are in `web/src/style.css`. Run `npm run web:dev` to start a hot-reloading
+dev server.
+
+### Reporting Bugs
+
+Please open an issue at
+👉 <https://github.com/khanlab/mind-lightsheet-folder-validator/issues>
+
+When reporting a bug, include:
+- Browser name and version
+- A description of the folder structure that triggered the issue (anonymise if needed)
+- Expected vs. actual behaviour
+- A screenshot if relevant
+
+---
+
+## Changelog / Roadmap
+
+See [issue #4](https://github.com/khanlab/mind-lightsheet-folder-validator/issues/4) for
+the full roadmap and release milestones.
+
+---
+
+# Part 2 — Lightsheet File & Folder Standards
 
 Status: Internal standard (publicly readable)  
 Applies to: Local filesystem storage for MIND Platform lightsheet microscopy data  
