@@ -182,6 +182,8 @@ All lightsheet data MUST live under a single top-level directory:
 
     lightsheet/
 
+Hidden files and directories (names beginning with `.`, e.g. `.DS_Store`, `.snakemake`) are **ignored** by the validator and are not recursed into.
+
 ---
 
 ## 2. Principal Investigator (PI) Level
@@ -227,7 +229,9 @@ Examples:
 
 Each project directory MUST contain:
 - raw/
-- README.md
+
+Each project directory SHOULD contain:
+- README.md (absence triggers a warning, not an error)
 
 Each project directory MAY contain:
 - bids/
@@ -236,11 +240,13 @@ Each project directory MAY contain:
 
 ---
 
-## 4. Required Project README
+## 4. Recommended Project README
 
-Each project directory MUST contain:
+Each project directory SHOULD contain:
 
     lightsheet/<pi_id>/<project_id>/README.md
+
+If `README.md` is absent, the validator will emit a **warning** (not an error).
 
 The project README SHOULD include:
 - Brief project description

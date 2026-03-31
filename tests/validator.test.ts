@@ -351,7 +351,7 @@ describe("PROJECT_REQUIRES_README rule", () => {
     expect(issuesFor(report.issues, "PROJECT_REQUIRES_README")).toHaveLength(0);
   });
 
-  test("reports error when README.md is absent", () => {
+  test("reports warning when README.md is absent", () => {
     const report = validate(
       buildValidTree({
         projectChildren: [
@@ -360,10 +360,11 @@ describe("PROJECT_REQUIRES_README rule", () => {
       }),
     );
     expect(issuesFor(report.issues, "PROJECT_REQUIRES_README")).toHaveLength(1);
-    expect(report.valid).toBe(false);
+    expect(issuesFor(report.issues, "PROJECT_REQUIRES_README")[0].severity).toBe("warning");
+    expect(report.valid).toBe(true);
   });
 
-  test("reports error when README.md is a directory instead of a file", () => {
+  test("reports warning when README.md is a directory instead of a file", () => {
     const report = validate(
       buildValidTree({
         projectChildren: [
@@ -373,6 +374,7 @@ describe("PROJECT_REQUIRES_README rule", () => {
       }),
     );
     expect(issuesFor(report.issues, "PROJECT_REQUIRES_README")).toHaveLength(1);
+    expect(issuesFor(report.issues, "PROJECT_REQUIRES_README")[0].severity).toBe("warning");
   });
 });
 
@@ -815,7 +817,94 @@ describe("RULES registry", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 17. End-to-end scenarios
+// 17. Hidden files and folders
+// ---------------------------------------------------------------------------
+
+describe("Hidden files and folders (names starting with '.')", () => {
+  test("hidden file at project level is ignored and does not trigger errors", () => {
+    const report = validate(
+      buildValidTree({
+        projectChildren: [
+          { name: ".DS_Store", type: "file" },
+          { name: "README.md", type: "file" },
+          { name: "raw", type: "directory", children: [] },
+        ],
+      }),
+    );
+    expect(report.issues).toHaveLength(0);
+    expect(report.valid).toBe(true);
+  });
+
+  test("hidden directory at project level is ignored and not recursed into", () => {
+    const report = validate(
+      buildValidTree({
+        projectChildren: [
+          {
+            name: ".snakemake",
+            type: "directory",
+            children: [{ name: "INVALID NAME!", type: "file" }],
+          },
+          { name: "README.md", type: "file" },
+          { name: "raw", type: "directory", children: [] },
+        ],
+      }),
+    );
+    expect(report.issues).toHaveLength(0);
+    expect(report.valid).toBe(true);
+  });
+
+  test("hidden file inside acquisition folder does not trigger ACQ_FOLDER_ONLY_SUBDIRS", () => {
+    const report = validate(
+      buildValidTree({
+        rawChildren: [
+          {
+            name: "tif_4x",
+            type: "directory",
+            children: [
+              { name: ".DS_Store", type: "file" },
+              {
+                name: "a_AS134F1",
+                type: "directory",
+                children: [{ name: "tile_001.tif", type: "file" }],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    expect(report.issues).toHaveLength(0);
+    expect(report.valid).toBe(true);
+  });
+
+  test("hidden directory at PI level is ignored", () => {
+    const report = validate({
+      name: "lightsheet",
+      type: "directory",
+      children: [
+        {
+          name: "prado",
+          type: "directory",
+          children: [
+            {
+              name: "myproject",
+              type: "directory",
+              children: [
+                { name: "README.md", type: "file" },
+                { name: "raw", type: "directory", children: [] },
+              ],
+            },
+          ],
+        },
+        { name: ".git", type: "directory", children: [] },
+      ],
+    });
+    expect(report.issues).toHaveLength(0);
+    expect(report.valid).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 18. End-to-end scenarios
 // ---------------------------------------------------------------------------
 
 describe("End-to-end: fully valid tree from README example", () => {
@@ -1260,7 +1349,8 @@ describe("validateFromProject", () => {
     };
     const report = validateFromProject(projectNode);
     expect(issuesFor(report.issues, "PROJECT_REQUIRES_README").length).toBeGreaterThan(0);
-    expect(report.valid).toBe(false);
+    expect(issuesFor(report.issues, "PROJECT_REQUIRES_README")[0].severity).toBe("warning");
+    expect(report.valid).toBe(true);
   });
 
   test("validates raw acquisition folder naming inside the project", () => {
