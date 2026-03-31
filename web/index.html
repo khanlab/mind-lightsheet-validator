@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lightsheet Folder Validator</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="app-header">
+        <h1>🔬 Lightsheet Folder Validator</h1>
+        <p class="subtitle">
+          Validate your local lightsheet data folder against the MIND naming
+          standard — no installation required.
+        </p>
+      </header>
+
+      <main class="app-main">
+        <!-- Browser compatibility notice -->
+        <div id="compat-warning" class="notice notice--warning hidden">
+          ⚠️ Your browser does not support the File System Access API. Please
+          use Chrome or Edge (v86+) to use the folder picker.
+        </div>
+
+        <!-- Folder picker section -->
+        <section class="card" id="picker-section">
+          <h2>Step 1 — Select a folder</h2>
+          <p>
+            Pick the root directory you want to validate (e.g. a
+            <code>lightsheet/</code> folder or any parent of it).
+          </p>
+          <button id="pick-btn" class="btn btn--primary" type="button">
+            📂 Choose folder…
+          </button>
+          <div id="selected-path" class="selected-path hidden"></div>
+        </section>
+
+        <!-- Validation status / progress -->
+        <section class="card hidden" id="progress-section">
+          <h2>Step 2 — Running validation…</h2>
+          <div class="spinner" aria-label="Validating…"></div>
+          <p id="progress-msg">Scanning folder tree…</p>
+        </section>
+
+        <!-- Results section -->
+        <section class="card hidden" id="results-section">
+          <h2>Validation Results</h2>
+
+          <!-- Summary badges -->
+          <div class="summary-row" id="summary-row"></div>
+
+          <!-- Issue list -->
+          <div id="issue-list"></div>
+
+          <!-- Re-run button -->
+          <button id="rerun-btn" class="btn btn--secondary" type="button">
+            🔄 Validate another folder
+          </button>
+        </section>
+
+        <!-- Error section (unexpected runtime errors) -->
+        <section class="card card--error hidden" id="error-section">
+          <h2>⚠️ Unexpected Error</h2>
+          <p id="error-msg"></p>
+          <button id="error-rerun-btn" class="btn btn--secondary" type="button">
+            🔄 Try again
+          </button>
+        </section>
+      </main>
+
+      <footer class="app-footer">
+        <p>
+          Powered by the
+          <a
+            href="https://github.com/khanlab/mind-lightsheet-folder-validator"
+            target="_blank"
+            rel="noopener noreferrer"
+            >mind-lightsheet-folder-validator</a
+          >
+          engine. Runs entirely in your browser — no data is uploaded.
+        </p>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
