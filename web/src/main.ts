@@ -6,7 +6,7 @@
  * results — all without a backend server.
  */
 
-import { validate } from "@validator/validator";
+import { validate, validateFromPI, validateFromProject } from "@validator/validator";
 import { RULES } from "@validator/rules";
 import type { FolderNode, ValidationIssue, ValidationReport } from "@validator/types";
 import "./style.css";
@@ -37,6 +37,7 @@ const groupBySelect = document.getElementById("group-by") as HTMLSelectElement;
 const ruleSummaryDiv = document.getElementById("rule-summary") as HTMLDivElement;
 const exportJsonBtn = document.getElementById("export-json-btn") as HTMLButtonElement;
 const exportCsvBtn = document.getElementById("export-csv-btn") as HTMLButtonElement;
+const validationLevelSelect = document.getElementById("validation-level") as HTMLSelectElement;
 
 // ---------------------------------------------------------------------------
 // UI state
@@ -437,7 +438,14 @@ async function runValidation(): Promise<void> {
   progressMsg.textContent = "Running validation rules…";
   let report: ValidationReport;
   try {
-    report = validate(tree);
+    const level = validationLevelSelect.value;
+    if (level === "pi") {
+      report = validateFromPI(tree);
+    } else if (level === "project") {
+      report = validateFromProject(tree);
+    } else {
+      report = validate(tree);
+    }
   } catch (err) {
     errorMsg.textContent =
       err instanceof Error

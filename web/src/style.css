@@ -184,6 +184,21 @@ body {
   word-break: break-all;
 }
 
+/* ---- Validation level selector ----------------------------------------- */
+.level-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.level-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
 /* ---- Spinner ----------------------------------------------------------- */
 .spinner {
   width: 36px;

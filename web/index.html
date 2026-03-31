@@ -27,9 +27,16 @@
         <section class="card" id="picker-section">
           <h2>Step 1 — Select a folder</h2>
           <p>
-            Pick the root directory you want to validate (e.g. a
-            <code>lightsheet/</code> folder or any parent of it).
+            Choose the validation level, then pick the corresponding directory.
           </p>
+          <div class="level-group" role="group" aria-labelledby="level-label">
+            <label class="level-label" id="level-label" for="validation-level">Validation level:</label>
+            <select id="validation-level" class="select" aria-label="Validation level">
+              <option value="lightsheet">Lightsheet root (full tree)</option>
+              <option value="pi">PI directory (one level down)</option>
+              <option value="project">Project directory (two levels down)</option>
+            </select>
+          </div>
           <button id="pick-btn" class="btn btn--primary" type="button">
             📂 Choose folder…
           </button>

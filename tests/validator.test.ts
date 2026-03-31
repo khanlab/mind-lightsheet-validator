@@ -9,7 +9,7 @@
  * Every rule defined in RULES has at least one passing and one failing example.
  */
 
-import { validate } from "../src/validator";
+import { validate, validateFromPI, validateFromProject } from "../src/validator";
 import {
   BAG_ID_PATTERN,
   DERIVATIVES_FOLDER_PATTERN,
@@ -968,5 +968,170 @@ describe(".zarr folder: validator does not recurse into zarr stores", () => {
     const report = validate(tree);
     expect(report.valid).toBe(true);
     expect(report.issues).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 17. validateFromPI – PI-level entry-point
+// ---------------------------------------------------------------------------
+
+describe("validateFromPI", () => {
+  test("returns valid:true for a PI directory with a valid project", () => {
+    const piNode: FolderNode = {
+      name: "prado",
+      type: "directory",
+      children: [
+        {
+          name: "myproject",
+          type: "directory",
+          children: [
+            { name: "README.md", type: "file" },
+            { name: "raw", type: "directory", children: [] },
+          ],
+        },
+      ],
+    };
+    const report = validateFromPI(piNode);
+    expect(report.valid).toBe(true);
+    expect(report.issues).toHaveLength(0);
+  });
+
+  test("does NOT report LIGHTSHEET_ROOT when lightsheet/ directory is absent", () => {
+    const piNode: FolderNode = { name: "prado", type: "directory", children: [] };
+    const report = validateFromPI(piNode);
+    expect(issuesFor(report.issues, "LIGHTSHEET_ROOT")).toHaveLength(0);
+  });
+
+  test("reports PI_ID_LOWERCASE for an invalid PI name", () => {
+    const piNode: FolderNode = { name: "BadPI", type: "directory", children: [] };
+    const report = validateFromPI(piNode);
+    expect(issuesFor(report.issues, "PI_ID_LOWERCASE").length).toBeGreaterThan(0);
+    expect(report.valid).toBe(false);
+  });
+
+  test("validates projects inside the PI directory", () => {
+    const piNode: FolderNode = {
+      name: "prado",
+      type: "directory",
+      children: [
+        {
+          name: "Bad_Project",
+          type: "directory",
+          children: [
+            { name: "README.md", type: "file" },
+            { name: "raw", type: "directory", children: [] },
+          ],
+        },
+      ],
+    };
+    const report = validateFromPI(piNode);
+    expect(issuesFor(report.issues, "PROJECT_ID_FORMAT").length).toBeGreaterThan(0);
+    expect(report.valid).toBe(false);
+  });
+
+  test("reports PROJECT_REQUIRES_RAW for a project missing raw/", () => {
+    const piNode: FolderNode = {
+      name: "prado",
+      type: "directory",
+      children: [
+        {
+          name: "myproject",
+          type: "directory",
+          children: [{ name: "README.md", type: "file" }],
+        },
+      ],
+    };
+    const report = validateFromPI(piNode);
+    expect(issuesFor(report.issues, "PROJECT_REQUIRES_RAW").length).toBeGreaterThan(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 18. validateFromProject – project-level entry-point
+// ---------------------------------------------------------------------------
+
+describe("validateFromProject", () => {
+  test("returns valid:true for a valid project directory", () => {
+    const projectNode: FolderNode = {
+      name: "myproject",
+      type: "directory",
+      children: [
+        { name: "README.md", type: "file" },
+        { name: "raw", type: "directory", children: [] },
+      ],
+    };
+    const report = validateFromProject(projectNode);
+    expect(report.valid).toBe(true);
+    expect(report.issues).toHaveLength(0);
+  });
+
+  test("does NOT report LIGHTSHEET_ROOT or PI_ID_LOWERCASE", () => {
+    const projectNode: FolderNode = {
+      name: "myproject",
+      type: "directory",
+      children: [
+        { name: "README.md", type: "file" },
+        { name: "raw", type: "directory", children: [] },
+      ],
+    };
+    const report = validateFromProject(projectNode);
+    expect(issuesFor(report.issues, "LIGHTSHEET_ROOT")).toHaveLength(0);
+    expect(issuesFor(report.issues, "PI_ID_LOWERCASE")).toHaveLength(0);
+  });
+
+  test("reports PROJECT_ID_FORMAT for an invalid project name", () => {
+    const projectNode: FolderNode = {
+      name: "Bad-Project",
+      type: "directory",
+      children: [
+        { name: "README.md", type: "file" },
+        { name: "raw", type: "directory", children: [] },
+      ],
+    };
+    const report = validateFromProject(projectNode);
+    expect(issuesFor(report.issues, "PROJECT_ID_FORMAT").length).toBeGreaterThan(0);
+    expect(report.valid).toBe(false);
+  });
+
+  test("reports PROJECT_REQUIRES_RAW when raw/ is missing", () => {
+    const projectNode: FolderNode = {
+      name: "myproject",
+      type: "directory",
+      children: [{ name: "README.md", type: "file" }],
+    };
+    const report = validateFromProject(projectNode);
+    expect(issuesFor(report.issues, "PROJECT_REQUIRES_RAW").length).toBeGreaterThan(0);
+    expect(report.valid).toBe(false);
+  });
+
+  test("reports PROJECT_REQUIRES_README when README.md is missing", () => {
+    const projectNode: FolderNode = {
+      name: "myproject",
+      type: "directory",
+      children: [{ name: "raw", type: "directory", children: [] }],
+    };
+    const report = validateFromProject(projectNode);
+    expect(issuesFor(report.issues, "PROJECT_REQUIRES_README").length).toBeGreaterThan(0);
+    expect(report.valid).toBe(false);
+  });
+
+  test("validates raw acquisition folder naming inside the project", () => {
+    const projectNode: FolderNode = {
+      name: "myproject",
+      type: "directory",
+      children: [
+        { name: "README.md", type: "file" },
+        {
+          name: "raw",
+          type: "directory",
+          children: [
+            { name: "bad_folder", type: "directory", children: [] },
+          ],
+        },
+      ],
+    };
+    const report = validateFromProject(projectNode);
+    expect(issuesFor(report.issues, "RAW_FOLDER_NAMING").length).toBeGreaterThan(0);
+    expect(report.valid).toBe(false);
   });
 });
