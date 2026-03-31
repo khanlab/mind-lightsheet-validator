@@ -1,0 +1,869 @@
+/**
+ * Comprehensive tests for the lightsheet folder validator.
+ *
+ * Test organisation:
+ *  1. Pattern / rule unit tests (test each regex in isolation)
+ *  2. validate() integration tests per rule
+ *  3. End-to-end scenarios (full valid tree, complex negative cases)
+ *
+ * Every rule defined in RULES has at least one passing and one failing example.
+ */
+
+import { validate } from "../src/validator";
+import {
+  BAG_ID_PATTERN,
+  DERIVATIVES_FOLDER_PATTERN,
+  LIGHTSHEET_ID_PATTERN,
+  PI_ID_PATTERN,
+  PROJECT_ID_PATTERN,
+  RAW_FOLDER_PATTERN,
+  RULES,
+  SUBJECT_ID_PATTERN,
+} from "../src/rules";
+import type { FolderNode, ValidationIssue } from "../src/types";
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Build a minimal valid project tree (pi: 'prado', project: 'myproject'). */
+function buildValidTree(overrides?: {
+  piName?: string;
+  projectName?: string;
+  projectChildren?: FolderNode[];
+  rawChildren?: FolderNode[];
+}): FolderNode {
+  const rawChildren = overrides?.rawChildren ?? [
+    {
+      name: "tif_4x",
+      type: "directory",
+      children: [
+        {
+          name: "a_AS134F1",
+          type: "directory",
+          children: [{ name: "tile_001.tif", type: "file" }],
+        },
+      ],
+    },
+  ];
+
+  const projectChildren: FolderNode[] = overrides?.projectChildren ?? [
+    { name: "README.md", type: "file" },
+    { name: "raw", type: "directory", children: rawChildren },
+  ];
+
+  return {
+    name: "lightsheet",
+    type: "directory",
+    children: [
+      {
+        name: overrides?.piName ?? "prado",
+        type: "directory",
+        children: [
+          {
+            name: overrides?.projectName ?? "myproject",
+            type: "directory",
+            children: projectChildren,
+          },
+        ],
+      },
+    ],
+  };
+}
+
+/** Filter issues by ruleId. */
+function issuesFor(issues: ValidationIssue[], ruleId: string): ValidationIssue[] {
+  return issues.filter((i) => i.ruleId === ruleId);
+}
+
+// ---------------------------------------------------------------------------
+// 1. Pattern unit tests
+// ---------------------------------------------------------------------------
+
+describe("PI_ID_PATTERN", () => {
+  test.each(["prado", "everling", "abc"])("accepts valid pi_id: %s", (v) => {
+    expect(PI_ID_PATTERN.test(v)).toBe(true);
+  });
+
+  test.each(["Prado", "prado1", "pi_id", "pi id", "123", ""])(
+    "rejects invalid pi_id: %s",
+    (v) => {
+      expect(PI_ID_PATTERN.test(v)).toBe(false);
+    },
+  );
+});
+
+describe("PROJECT_ID_PATTERN", () => {
+  test.each([
+    "myproject",
+    "mouse_app_lecanemab_batch3",
+    "mouse_app_lecanemab_ki3_batch1",
+    "marmoset",
+    "batch1",
+    "abc123",
+  ])("accepts valid project_id: %s", (v) => {
+    expect(PROJECT_ID_PATTERN.test(v)).toBe(true);
+  });
+
+  test.each(["MyProject", "my-project", "my project", "my.project", ""])(
+    "rejects invalid project_id: %s",
+    (v) => {
+      expect(PROJECT_ID_PATTERN.test(v)).toBe(false);
+    },
+  );
+});
+
+describe("RAW_FOLDER_PATTERN", () => {
+  test.each([
+    "tif_4x",
+    "tif_4x166",
+    "ims_4x",
+    "ims_4x_stitched",
+    "ims_4x166_stitched",
+    "tif_1x",
+    "tif_10x",
+    "ims_4x_stitched_denoised",
+  ])("accepts valid raw folder: %s", (v) => {
+    expect(RAW_FOLDER_PATTERN.test(v)).toBe(true);
+  });
+
+  test.each([
+    "tiff_4x",        // wrong prefix
+    "raw_4x",         // wrong prefix
+    "tif4x",          // missing underscore
+    "tif_4",          // missing 'x'
+    "tif_X4x",        // non-digit objective
+    "tif_4x_",        // trailing underscore with empty token
+    "tif_4x_Stitched", // uppercase in proc
+    "",
+  ])("rejects invalid raw folder: %s", (v) => {
+    expect(RAW_FOLDER_PATTERN.test(v)).toBe(false);
+  });
+});
+
+describe("BAG_ID_PATTERN", () => {
+  test.each(["a", "z", "A", "Z", "b"])("accepts valid bag_id: %s", (v) => {
+    expect(BAG_ID_PATTERN.test(v)).toBe(true);
+  });
+
+  test.each(["ab", "1", "_a", "aa", ""])(
+    "rejects invalid bag_id: %s",
+    (v) => {
+      expect(BAG_ID_PATTERN.test(v)).toBe(false);
+    },
+  );
+});
+
+describe("SUBJECT_ID_PATTERN", () => {
+  test.each(["AS134F1", "523M1", "Benny", "abc123"])(
+    "accepts valid subject_id: %s",
+    (v) => {
+      expect(SUBJECT_ID_PATTERN.test(v)).toBe(true);
+    },
+  );
+
+  test.each(["AS134-F1", "AS 134F1", "AS_134F1", ""])(
+    "rejects invalid subject_id: %s",
+    (v) => {
+      expect(SUBJECT_ID_PATTERN.test(v)).toBe(false);
+    },
+  );
+});
+
+describe("LIGHTSHEET_ID_PATTERN", () => {
+  test.each([
+    "a_AS134F1",
+    "b_AS134F3",
+    "a_Benny_lefthemi",
+    "a_523M1",
+    "b_598F2",
+    "A_Sample1",
+    "c_Mouse1_righthemi",
+  ])("accepts valid lightsheet_id: %s", (v) => {
+    expect(LIGHTSHEET_ID_PATTERN.test(v)).toBe(true);
+  });
+
+  test.each([
+    "ab_AS134F1",      // bag_id too long
+    "1_AS134F1",       // bag_id is digit
+    "a_",              // missing subject_id
+    "aAS134F1",        // missing underscore separator
+    "a_AS 134F1",      // whitespace in subject_id
+    "",
+  ])("rejects invalid lightsheet_id: %s", (v) => {
+    expect(LIGHTSHEET_ID_PATTERN.test(v)).toBe(false);
+  });
+});
+
+describe("DERIVATIVES_FOLDER_PATTERN", () => {
+  test.each([
+    "spimquant_v0.4.0rc1",
+    "spimquant_82c76d8",
+    "spimprep_v1.0.0",
+    "my_pipeline_v2.1-beta",
+  ])("accepts valid derivatives folder: %s", (v) => {
+    expect(DERIVATIVES_FOLDER_PATTERN.test(v)).toBe(true);
+  });
+
+  test.each(["spimquant", "_v1.0", ""])(
+    "rejects invalid derivatives folder: %s",
+    (v) => {
+      expect(DERIVATIVES_FOLDER_PATTERN.test(v)).toBe(false);
+    },
+  );
+});
+
+// ---------------------------------------------------------------------------
+// 2. validate() – LIGHTSHEET_ROOT rule
+// ---------------------------------------------------------------------------
+
+describe("LIGHTSHEET_ROOT rule", () => {
+  test("passes when root node is named 'lightsheet'", () => {
+    const report = validate({ name: "lightsheet", type: "directory" });
+    expect(issuesFor(report.issues, "LIGHTSHEET_ROOT")).toHaveLength(0);
+  });
+
+  test("passes when lightsheet/ is a child of the provided root", () => {
+    const root: FolderNode = {
+      name: "filesystem",
+      type: "directory",
+      children: [{ name: "lightsheet", type: "directory" }],
+    };
+    const report = validate(root);
+    expect(issuesFor(report.issues, "LIGHTSHEET_ROOT")).toHaveLength(0);
+  });
+
+  test("reports error when no lightsheet/ found", () => {
+    const root: FolderNode = {
+      name: "data",
+      type: "directory",
+      children: [{ name: "projects", type: "directory" }],
+    };
+    const report = validate(root);
+    expect(report.valid).toBe(false);
+    expect(issuesFor(report.issues, "LIGHTSHEET_ROOT")).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 3. validate() – PI_ID_LOWERCASE rule
+// ---------------------------------------------------------------------------
+
+describe("PI_ID_LOWERCASE rule", () => {
+  test("passes for a valid lowercase pi_id", () => {
+    const report = validate(buildValidTree({ piName: "prado" }));
+    expect(issuesFor(report.issues, "PI_ID_LOWERCASE")).toHaveLength(0);
+    expect(report.valid).toBe(true);
+  });
+
+  test("reports error for uppercase pi_id", () => {
+    const report = validate(buildValidTree({ piName: "Prado" }));
+    expect(issuesFor(report.issues, "PI_ID_LOWERCASE")).toHaveLength(1);
+    expect(report.valid).toBe(false);
+  });
+
+  test("reports error for pi_id containing digits", () => {
+    const report = validate(buildValidTree({ piName: "pi1" }));
+    expect(issuesFor(report.issues, "PI_ID_LOWERCASE")).toHaveLength(1);
+  });
+
+  test("reports error for pi_id with spaces", () => {
+    const report = validate(buildValidTree({ piName: "my pi" }));
+    expect(issuesFor(report.issues, "PI_ID_LOWERCASE")).toHaveLength(1);
+  });
+
+  test("error has a suggestedFix", () => {
+    const report = validate(buildValidTree({ piName: "Prado" }));
+    const issue = issuesFor(report.issues, "PI_ID_LOWERCASE")[0];
+    expect(issue.suggestedFix).toBeDefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4. validate() – PROJECT_ID_FORMAT rule
+// ---------------------------------------------------------------------------
+
+describe("PROJECT_ID_FORMAT rule", () => {
+  test("passes for valid project_id values", () => {
+    for (const name of ["myproject", "mouse_app_batch3", "batch1"]) {
+      const report = validate(buildValidTree({ projectName: name }));
+      expect(issuesFor(report.issues, "PROJECT_ID_FORMAT")).toHaveLength(0);
+    }
+  });
+
+  test("reports error for project_id with hyphens", () => {
+    const report = validate(buildValidTree({ projectName: "my-project" }));
+    expect(issuesFor(report.issues, "PROJECT_ID_FORMAT")).toHaveLength(1);
+    expect(report.valid).toBe(false);
+  });
+
+  test("reports error for project_id with uppercase letters", () => {
+    const report = validate(buildValidTree({ projectName: "MyProject" }));
+    expect(issuesFor(report.issues, "PROJECT_ID_FORMAT")).toHaveLength(1);
+  });
+
+  test("reports error for project_id with spaces", () => {
+    const report = validate(buildValidTree({ projectName: "my project" }));
+    expect(issuesFor(report.issues, "PROJECT_ID_FORMAT")).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 5. validate() – PROJECT_REQUIRES_RAW rule
+// ---------------------------------------------------------------------------
+
+describe("PROJECT_REQUIRES_RAW rule", () => {
+  test("passes when raw/ directory is present", () => {
+    const report = validate(buildValidTree());
+    expect(issuesFor(report.issues, "PROJECT_REQUIRES_RAW")).toHaveLength(0);
+  });
+
+  test("reports error when raw/ is absent", () => {
+    const report = validate(
+      buildValidTree({
+        projectChildren: [{ name: "README.md", type: "file" }],
+      }),
+    );
+    expect(issuesFor(report.issues, "PROJECT_REQUIRES_RAW")).toHaveLength(1);
+    expect(report.valid).toBe(false);
+  });
+
+  test("reports error when raw exists as a file, not a directory", () => {
+    const report = validate(
+      buildValidTree({
+        projectChildren: [
+          { name: "README.md", type: "file" },
+          { name: "raw", type: "file" }, // file, not directory
+        ],
+      }),
+    );
+    expect(issuesFor(report.issues, "PROJECT_REQUIRES_RAW")).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 6. validate() – PROJECT_REQUIRES_README rule
+// ---------------------------------------------------------------------------
+
+describe("PROJECT_REQUIRES_README rule", () => {
+  test("passes when README.md file is present", () => {
+    const report = validate(buildValidTree());
+    expect(issuesFor(report.issues, "PROJECT_REQUIRES_README")).toHaveLength(0);
+  });
+
+  test("reports error when README.md is absent", () => {
+    const report = validate(
+      buildValidTree({
+        projectChildren: [
+          { name: "raw", type: "directory", children: [] },
+        ],
+      }),
+    );
+    expect(issuesFor(report.issues, "PROJECT_REQUIRES_README")).toHaveLength(1);
+    expect(report.valid).toBe(false);
+  });
+
+  test("reports error when README.md is a directory instead of a file", () => {
+    const report = validate(
+      buildValidTree({
+        projectChildren: [
+          { name: "README.md", type: "directory" }, // wrong type
+          { name: "raw", type: "directory", children: [] },
+        ],
+      }),
+    );
+    expect(issuesFor(report.issues, "PROJECT_REQUIRES_README")).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 7. validate() – RAW_FOLDER_NAMING rule
+// ---------------------------------------------------------------------------
+
+describe("RAW_FOLDER_NAMING rule", () => {
+  const rawWith = (acqName: string): FolderNode =>
+    buildValidTree({
+      rawChildren: [{ name: acqName, type: "directory", children: [] }],
+    });
+
+  test.each([
+    "tif_4x",
+    "tif_4x166",
+    "ims_4x",
+    "ims_4x_stitched",
+    "ims_4x166_stitched",
+  ])("passes for valid acquisition folder '%s'", (name) => {
+    const report = validate(rawWith(name));
+    expect(issuesFor(report.issues, "RAW_FOLDER_NAMING")).toHaveLength(0);
+  });
+
+  test.each([
+    "tiff_4x",
+    "4x_tif",
+    "tif_4",
+    "tif_",
+    "raw_data",
+  ])("reports error for invalid acquisition folder '%s'", (name) => {
+    const report = validate(rawWith(name));
+    expect(issuesFor(report.issues, "RAW_FOLDER_NAMING")).toHaveLength(1);
+    expect(report.valid).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 8. validate() – SAMPLE_NO_WHITESPACE rule
+// ---------------------------------------------------------------------------
+
+describe("SAMPLE_NO_WHITESPACE rule", () => {
+  const treeWithSample = (sampleName: string): FolderNode =>
+    buildValidTree({
+      rawChildren: [
+        {
+          name: "tif_4x",
+          type: "directory",
+          children: [{ name: sampleName, type: "directory", children: [] }],
+        },
+      ],
+    });
+
+  test("passes for sample without whitespace", () => {
+    const report = validate(treeWithSample("a_AS134F1"));
+    expect(issuesFor(report.issues, "SAMPLE_NO_WHITESPACE")).toHaveLength(0);
+  });
+
+  test("reports error for sample with a space", () => {
+    const report = validate(treeWithSample("a_AS134 F1"));
+    expect(issuesFor(report.issues, "SAMPLE_NO_WHITESPACE")).toHaveLength(1);
+    expect(report.valid).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 9. validate() – SAMPLE_BAG_ID_FORMAT rule
+// ---------------------------------------------------------------------------
+
+describe("SAMPLE_BAG_ID_FORMAT rule", () => {
+  const treeWithSample = (sampleName: string): FolderNode =>
+    buildValidTree({
+      rawChildren: [
+        {
+          name: "tif_4x",
+          type: "directory",
+          children: [{ name: sampleName, type: "directory", children: [] }],
+        },
+      ],
+    });
+
+  test.each(["a_AS134F1", "A_Sample1", "z_Z1"])(
+    "passes for valid bag_id in sample '%s'",
+    (name) => {
+      const report = validate(treeWithSample(name));
+      expect(issuesFor(report.issues, "SAMPLE_BAG_ID_FORMAT")).toHaveLength(0);
+    },
+  );
+
+  test("reports error for multi-char bag_id", () => {
+    const report = validate(treeWithSample("ab_AS134F1"));
+    expect(issuesFor(report.issues, "SAMPLE_BAG_ID_FORMAT")).toHaveLength(1);
+  });
+
+  test("reports error for digit bag_id", () => {
+    const report = validate(treeWithSample("1_AS134F1"));
+    expect(issuesFor(report.issues, "SAMPLE_BAG_ID_FORMAT")).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 10. validate() – SAMPLE_SUBJECT_ID_FORMAT rule
+// ---------------------------------------------------------------------------
+
+describe("SAMPLE_SUBJECT_ID_FORMAT rule", () => {
+  const treeWithSample = (sampleName: string): FolderNode =>
+    buildValidTree({
+      rawChildren: [
+        {
+          name: "tif_4x",
+          type: "directory",
+          children: [{ name: sampleName, type: "directory", children: [] }],
+        },
+      ],
+    });
+
+  test.each(["a_AS134F1", "b_523M1", "a_Benny"])(
+    "passes for valid subject_id in sample '%s'",
+    (name) => {
+      const report = validate(treeWithSample(name));
+      expect(issuesFor(report.issues, "SAMPLE_SUBJECT_ID_FORMAT")).toHaveLength(0);
+    },
+  );
+
+  test("reports error for subject_id with special characters", () => {
+    const report = validate(treeWithSample("a_AS134-F1"));
+    expect(issuesFor(report.issues, "SAMPLE_SUBJECT_ID_FORMAT")).toHaveLength(1);
+  });
+
+  test("reports error when subject_id is missing", () => {
+    const report = validate(treeWithSample("a_"));
+    expect(issuesFor(report.issues, "SAMPLE_SUBJECT_ID_FORMAT")).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 11. validate() – TIFF_SAMPLE_NO_SUBDIRS rule
+// ---------------------------------------------------------------------------
+
+describe("TIFF_SAMPLE_NO_SUBDIRS rule", () => {
+  test("passes when tif_ sample contains only files", () => {
+    const report = validate(buildValidTree());
+    expect(issuesFor(report.issues, "TIFF_SAMPLE_NO_SUBDIRS")).toHaveLength(0);
+  });
+
+  test("reports error when tif_ sample contains a subdirectory", () => {
+    const tree = buildValidTree({
+      rawChildren: [
+        {
+          name: "tif_4x",
+          type: "directory",
+          children: [
+            {
+              name: "a_AS134F1",
+              type: "directory",
+              children: [
+                { name: "tile_001.tif", type: "file" },
+                { name: "subdir", type: "directory", children: [] }, // violation
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    const report = validate(tree);
+    expect(issuesFor(report.issues, "TIFF_SAMPLE_NO_SUBDIRS")).toHaveLength(1);
+    expect(report.valid).toBe(false);
+  });
+
+  test("does NOT flag subdirectories inside ims_ sample folders", () => {
+    const tree = buildValidTree({
+      rawChildren: [
+        {
+          name: "ims_4x_stitched",
+          type: "directory",
+          children: [
+            {
+              name: "a_AS134F1",
+              type: "directory",
+              children: [
+                { name: "subdir", type: "directory", children: [] }, // allowed for ims_
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    const report = validate(tree);
+    expect(issuesFor(report.issues, "TIFF_SAMPLE_NO_SUBDIRS")).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 12. validate() – DERIVATIVES_FOLDER_NAMING rule
+// ---------------------------------------------------------------------------
+
+describe("DERIVATIVES_FOLDER_NAMING rule", () => {
+  const treeWithDerivative = (derivName: string): FolderNode =>
+    buildValidTree({
+      projectChildren: [
+        { name: "README.md", type: "file" },
+        { name: "raw", type: "directory", children: [] },
+        {
+          name: "derivatives",
+          type: "directory",
+          children: [{ name: derivName, type: "directory", children: [] }],
+        },
+      ],
+    });
+
+  test.each(["spimquant_v0.4.0rc1", "spimquant_82c76d8", "spimprep_v1.0.0"])(
+    "passes for valid derivatives folder '%s'",
+    (name) => {
+      const report = validate(treeWithDerivative(name));
+      expect(issuesFor(report.issues, "DERIVATIVES_FOLDER_NAMING")).toHaveLength(0);
+    },
+  );
+
+  test("emits a warning (not error) for non-conforming derivatives folder", () => {
+    const report = validate(treeWithDerivative("outputfolder"));
+    const issues = issuesFor(report.issues, "DERIVATIVES_FOLDER_NAMING");
+    expect(issues).toHaveLength(1);
+    expect(issues[0].severity).toBe("warning");
+    // Warnings don't make the report invalid
+    expect(report.valid).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 13. ValidationReport shape
+// ---------------------------------------------------------------------------
+
+describe("ValidationReport shape", () => {
+  test("report.valid is true for a fully valid tree", () => {
+    const report = validate(buildValidTree());
+    expect(report.valid).toBe(true);
+    expect(report.issues).toHaveLength(0);
+  });
+
+  test("report.valid is false when any error is present", () => {
+    const report = validate(buildValidTree({ piName: "BadPI" }));
+    expect(report.valid).toBe(false);
+  });
+
+  test("issues include ruleId, message, path, and severity", () => {
+    const report = validate(buildValidTree({ piName: "Bad" }));
+    const issue = report.issues[0];
+    expect(issue).toHaveProperty("ruleId");
+    expect(issue).toHaveProperty("message");
+    expect(issue).toHaveProperty("path");
+    expect(issue).toHaveProperty("severity");
+  });
+
+  test("issue path reflects tree location", () => {
+    const report = validate(buildValidTree({ piName: "BadPI" }));
+    const issue = issuesFor(report.issues, "PI_ID_LOWERCASE")[0];
+    expect(issue.path).toContain("BadPI");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 14. RULES registry
+// ---------------------------------------------------------------------------
+
+describe("RULES registry", () => {
+  test("all expected rule IDs exist", () => {
+    const expectedIds = [
+      "LIGHTSHEET_ROOT",
+      "PI_ID_LOWERCASE",
+      "PROJECT_ID_FORMAT",
+      "PROJECT_REQUIRES_RAW",
+      "PROJECT_REQUIRES_README",
+      "RAW_FOLDER_NAMING",
+      "SAMPLE_NO_WHITESPACE",
+      "SAMPLE_BAG_ID_FORMAT",
+      "SAMPLE_SUBJECT_ID_FORMAT",
+      "TIFF_SAMPLE_NO_SUBDIRS",
+      "DERIVATIVES_FOLDER_NAMING",
+    ];
+    for (const id of expectedIds) {
+      expect(RULES).toHaveProperty(id);
+    }
+  });
+
+  test("each rule has an id and description", () => {
+    for (const [key, rule] of Object.entries(RULES)) {
+      expect(rule.id).toBe(key);
+      expect(typeof rule.description).toBe("string");
+      expect(rule.description.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 15. End-to-end scenarios
+// ---------------------------------------------------------------------------
+
+describe("End-to-end: fully valid tree from README example", () => {
+  test("no issues for the full example from the ingestion workflow", () => {
+    const tree: FolderNode = {
+      name: "lightsheet",
+      type: "directory",
+      children: [
+        {
+          name: "prado",
+          type: "directory",
+          children: [
+            {
+              name: "mouse_app_example_batch1",
+              type: "directory",
+              children: [
+                { name: "README.md", type: "file" },
+                {
+                  name: "raw",
+                  type: "directory",
+                  children: [
+                    {
+                      name: "tif_4x",
+                      type: "directory",
+                      children: [
+                        {
+                          name: "a_AS134F1",
+                          type: "directory",
+                          children: [{ name: "tile_001.tif", type: "file" }],
+                        },
+                        {
+                          name: "b_AS134F3",
+                          type: "directory",
+                          children: [{ name: "tile_001.tif", type: "file" }],
+                        },
+                      ],
+                    },
+                    {
+                      name: "ims_4x_stitched",
+                      type: "directory",
+                      children: [
+                        {
+                          name: "a_AS134F1",
+                          type: "directory",
+                          children: [{ name: "sample.ims", type: "file" }],
+                        },
+                        {
+                          name: "b_AS134F3",
+                          type: "directory",
+                          children: [{ name: "sample.ims", type: "file" }],
+                        },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  name: "bids",
+                  type: "directory",
+                  children: [
+                    { name: "dataset_description.json", type: "file" },
+                    { name: "README.md", type: "file" },
+                  ],
+                },
+                {
+                  name: "derivatives",
+                  type: "directory",
+                  children: [
+                    {
+                      name: "spimquant_v0.4.0rc1",
+                      type: "directory",
+                      children: [],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const report = validate(tree);
+    expect(report.valid).toBe(true);
+    expect(report.issues).toHaveLength(0);
+  });
+});
+
+describe("End-to-end: multiple PIs and projects", () => {
+  test("validates all branches independently", () => {
+    const tree: FolderNode = {
+      name: "lightsheet",
+      type: "directory",
+      children: [
+        {
+          name: "prado",
+          type: "directory",
+          children: [
+            {
+              name: "mouse_batch1",
+              type: "directory",
+              children: [
+                { name: "README.md", type: "file" },
+                { name: "raw", type: "directory", children: [] },
+              ],
+            },
+          ],
+        },
+        {
+          name: "everling",
+          type: "directory",
+          children: [
+            {
+              name: "marmoset",
+              type: "directory",
+              children: [
+                { name: "README.md", type: "file" },
+                {
+                  name: "raw",
+                  type: "directory",
+                  children: [
+                    {
+                      name: "tif_4x166",
+                      type: "directory",
+                      children: [
+                        {
+                          name: "a_Benny_lefthemi",
+                          type: "directory",
+                          children: [],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const report = validate(tree);
+    expect(report.valid).toBe(true);
+    expect(report.issues).toHaveLength(0);
+  });
+});
+
+describe("End-to-end: multiple errors accumulate", () => {
+  test("both pi_id and project_id errors are reported", () => {
+    const report = validate(
+      buildValidTree({ piName: "BadPI", projectName: "Bad-Project" }),
+    );
+    expect(issuesFor(report.issues, "PI_ID_LOWERCASE")).toHaveLength(1);
+    expect(issuesFor(report.issues, "PROJECT_ID_FORMAT")).toHaveLength(1);
+    expect(report.valid).toBe(false);
+  });
+
+  test("missing raw/ and README.md both reported", () => {
+    const report = validate(
+      buildValidTree({ projectChildren: [] }),
+    );
+    expect(issuesFor(report.issues, "PROJECT_REQUIRES_RAW")).toHaveLength(1);
+    expect(issuesFor(report.issues, "PROJECT_REQUIRES_README")).toHaveLength(1);
+  });
+});
+
+describe("End-to-end: caller passes filesystem root with lightsheet/ child", () => {
+  test("validates correctly when lightsheet/ is nested inside the root", () => {
+    const filesystemRoot: FolderNode = {
+      name: "trident3",
+      type: "directory",
+      children: [
+        {
+          name: "lightsheet",
+          type: "directory",
+          children: [
+            {
+              name: "prado",
+              type: "directory",
+              children: [
+                {
+                  name: "myproject",
+                  type: "directory",
+                  children: [
+                    { name: "README.md", type: "file" },
+                    { name: "raw", type: "directory", children: [] },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const report = validate(filesystemRoot);
+    expect(report.valid).toBe(true);
+    expect(issuesFor(report.issues, "LIGHTSHEET_ROOT")).toHaveLength(0);
+  });
+});
