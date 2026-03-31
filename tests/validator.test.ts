@@ -566,7 +566,153 @@ describe("TIFF_SAMPLE_NO_SUBDIRS rule", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 12. validate() – DERIVATIVES_FOLDER_NAMING rule
+// 12. validate() – ACQ_FOLDER_ONLY_SUBDIRS rule
+// ---------------------------------------------------------------------------
+
+describe("ACQ_FOLDER_ONLY_SUBDIRS rule", () => {
+  const acqWithFile = (acqName: string, fileName: string): FolderNode =>
+    buildValidTree({
+      rawChildren: [
+        {
+          name: acqName,
+          type: "directory",
+          children: [
+            { name: fileName, type: "file" },
+            {
+              name: "a_AS134F1",
+              type: "directory",
+              children: [{ name: "tile_001.tif", type: "file" }],
+            },
+          ],
+        },
+      ],
+    });
+
+  test("passes when tif_ acquisition folder contains only subdirectories", () => {
+    const report = validate(buildValidTree());
+    expect(issuesFor(report.issues, "ACQ_FOLDER_ONLY_SUBDIRS")).toHaveLength(0);
+  });
+
+  test("reports error when tif_ acquisition folder contains a loose file", () => {
+    const report = validate(acqWithFile("tif_4x", "stray_file.txt"));
+    const issues = issuesFor(report.issues, "ACQ_FOLDER_ONLY_SUBDIRS");
+    expect(issues).toHaveLength(1);
+    expect(issues[0].severity).toBe("error");
+    expect(report.valid).toBe(false);
+  });
+
+  test("reports error when ims_ acquisition folder contains a loose file", () => {
+    const report = validate(acqWithFile("ims_4x_stitched", "notes.txt"));
+    const issues = issuesFor(report.issues, "ACQ_FOLDER_ONLY_SUBDIRS");
+    expect(issues).toHaveLength(1);
+    expect(issues[0].severity).toBe("error");
+    expect(report.valid).toBe(false);
+  });
+
+  test("reports one error per loose file in the acquisition folder", () => {
+    const tree = buildValidTree({
+      rawChildren: [
+        {
+          name: "tif_4x",
+          type: "directory",
+          children: [
+            { name: "file1.txt", type: "file" },
+            { name: "file2.txt", type: "file" },
+            {
+              name: "a_AS134F1",
+              type: "directory",
+              children: [{ name: "tile_001.tif", type: "file" }],
+            },
+          ],
+        },
+      ],
+    });
+    const issues = issuesFor(validate(tree).issues, "ACQ_FOLDER_ONLY_SUBDIRS");
+    expect(issues).toHaveLength(2);
+  });
+
+  test("error includes the file name in the message", () => {
+    const report = validate(acqWithFile("tif_4x", "notes.md"));
+    const issue = issuesFor(report.issues, "ACQ_FOLDER_ONLY_SUBDIRS")[0];
+    expect(issue.message).toContain("notes.md");
+    expect(issue.suggestedFix).toBeDefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 13. validate() – IMS_SAMPLE_MULTIPLE_IMS rule
+// ---------------------------------------------------------------------------
+
+describe("IMS_SAMPLE_MULTIPLE_IMS rule", () => {
+  const imsTreeWithFiles = (fileNames: string[]): FolderNode =>
+    buildValidTree({
+      rawChildren: [
+        {
+          name: "ims_4x_stitched",
+          type: "directory",
+          children: [
+            {
+              name: "a_AS134F1",
+              type: "directory",
+              children: fileNames.map((n) => ({ name: n, type: "file" as const })),
+            },
+          ],
+        },
+      ],
+    });
+
+  test("passes when ims_ sample contains exactly one .ims file", () => {
+    const report = validate(imsTreeWithFiles(["sample.ims"]));
+    expect(issuesFor(report.issues, "IMS_SAMPLE_MULTIPLE_IMS")).toHaveLength(0);
+    expect(report.valid).toBe(true);
+  });
+
+  test("passes when ims_ sample contains no .ims files", () => {
+    const report = validate(imsTreeWithFiles([]));
+    expect(issuesFor(report.issues, "IMS_SAMPLE_MULTIPLE_IMS")).toHaveLength(0);
+  });
+
+  test("emits a warning (not error) when ims_ sample contains multiple .ims files", () => {
+    const report = validate(imsTreeWithFiles(["sample_v1.ims", "sample_v2.ims"]));
+    const issues = issuesFor(report.issues, "IMS_SAMPLE_MULTIPLE_IMS");
+    expect(issues).toHaveLength(1);
+    expect(issues[0].severity).toBe("warning");
+    // Warnings don't invalidate the report
+    expect(report.valid).toBe(true);
+  });
+
+  test("warning message includes the count of .ims files", () => {
+    const report = validate(imsTreeWithFiles(["a.ims", "b.ims", "c.ims"]));
+    const issue = issuesFor(report.issues, "IMS_SAMPLE_MULTIPLE_IMS")[0];
+    expect(issue.message).toContain("3");
+    expect(issue.suggestedFix).toBeDefined();
+  });
+
+  test("does NOT flag multiple .ims files inside tif_ sample folders (rule only applies to ims_)", () => {
+    const tree = buildValidTree({
+      rawChildren: [
+        {
+          name: "tif_4x",
+          type: "directory",
+          children: [
+            {
+              name: "a_AS134F1",
+              type: "directory",
+              children: [
+                { name: "one.ims", type: "file" },
+                { name: "two.ims", type: "file" },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    expect(issuesFor(validate(tree).issues, "IMS_SAMPLE_MULTIPLE_IMS")).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 14. validate() – DERIVATIVES_FOLDER_NAMING rule
 // ---------------------------------------------------------------------------
 
 describe("DERIVATIVES_FOLDER_NAMING rule", () => {
@@ -602,7 +748,7 @@ describe("DERIVATIVES_FOLDER_NAMING rule", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 13. ValidationReport shape
+// 15. ValidationReport shape
 // ---------------------------------------------------------------------------
 
 describe("ValidationReport shape", () => {
@@ -634,7 +780,7 @@ describe("ValidationReport shape", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 14. RULES registry
+// 16. RULES registry
 // ---------------------------------------------------------------------------
 
 describe("RULES registry", () => {
@@ -650,6 +796,8 @@ describe("RULES registry", () => {
       "SAMPLE_BAG_ID_FORMAT",
       "SAMPLE_SUBJECT_ID_FORMAT",
       "TIFF_SAMPLE_NO_SUBDIRS",
+      "ACQ_FOLDER_ONLY_SUBDIRS",
+      "IMS_SAMPLE_MULTIPLE_IMS",
       "DERIVATIVES_FOLDER_NAMING",
     ];
     for (const id of expectedIds) {
@@ -667,7 +815,7 @@ describe("RULES registry", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 15. End-to-end scenarios
+// 17. End-to-end scenarios
 // ---------------------------------------------------------------------------
 
 describe("End-to-end: fully valid tree from README example", () => {
@@ -869,7 +1017,7 @@ describe("End-to-end: caller passes filesystem root with lightsheet/ child", () 
 });
 
 // ---------------------------------------------------------------------------
-// 16. .zarr folder handling
+// 18. .zarr folder handling
 // ---------------------------------------------------------------------------
 
 describe(".zarr folder: validator does not recurse into zarr stores", () => {

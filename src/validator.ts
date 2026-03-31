@@ -225,7 +225,8 @@ function validateRawDirectory(
  * Validate a raw acquisition folder (`tif_4x`, `ims_4x_stitched`, …).
  *
  * Checks:
- *  - RULE: RAW_FOLDER_NAMING – name must match the raw-folder pattern
+ *  - RULE: RAW_FOLDER_NAMING        – name must match the raw-folder pattern
+ *  - RULE: ACQ_FOLDER_ONLY_SUBDIRS  – no files at the acquisition folder level
  *  - Recurses into sample-level directories, passing whether this is a tif_ folder
  */
 function validateAcquisitionFolder(
@@ -248,7 +249,16 @@ function validateAcquisitionFolder(
   const isTif = acqNode.name.startsWith("tif_");
 
   for (const child of acqNode.children ?? []) {
-    if (child.type === "directory") {
+    if (child.type === "file") {
+      addIssue(
+        issues,
+        "ACQ_FOLDER_ONLY_SUBDIRS",
+        `Acquisition folder '${acqNode.name}' contains a file '${child.name}' at the top level; only lightsheet_id subdirectories are allowed here.`,
+        path,
+        "error",
+        `Move '${child.name}' into a lightsheet_id subdirectory inside '${path}'.`,
+      );
+    } else {
       validateSampleFolder(child, issues, isTif);
     }
   }
@@ -262,6 +272,7 @@ function validateAcquisitionFolder(
  *  - RULE: SAMPLE_BAG_ID_FORMAT     – first segment must be a single letter
  *  - RULE: SAMPLE_SUBJECT_ID_FORMAT – second segment must be letters/numbers only
  *  - RULE: TIFF_SAMPLE_NO_SUBDIRS   – tif_ sample folders must not contain subdirectories
+ *  - RULE: IMS_SAMPLE_MULTIPLE_IMS  – ims_ sample folders should contain only one .ims file
  */
 function validateSampleFolder(
   sampleNode: FolderNode,
@@ -335,6 +346,21 @@ function validateSampleFolder(
           `Move all TIFF tiles directly into '${path}' and remove the subdirectory.`,
         );
       }
+    }
+  } else {
+    // ims_ sample folders: warn if more than one .ims file is present
+    const imsFiles = (sampleNode.children ?? []).filter(
+      (c) => c.type === "file" && c.name.endsWith(".ims"),
+    );
+    if (imsFiles.length > 1) {
+      addIssue(
+        issues,
+        "IMS_SAMPLE_MULTIPLE_IMS",
+        `Sample folder '${name}' inside an ims_* acquisition folder contains ${imsFiles.length} .ims files; typically only one is expected.`,
+        path,
+        "warning",
+        `Remove extra .ims files or confirm that multiple versions are intentional.`,
+      );
     }
   }
 }

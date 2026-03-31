@@ -161,6 +161,16 @@ export const RULES: Readonly<Record<string, Rule>> = {
     description:
       "Sample folders inside tif_* acquisition folders MUST NOT contain subdirectories.",
   },
+  ACQ_FOLDER_ONLY_SUBDIRS: {
+    id: "ACQ_FOLDER_ONLY_SUBDIRS",
+    description:
+      "tif_* and ims_* acquisition folders MUST only contain subdirectories named by lightsheet_id (no loose files at the acquisition folder level).",
+  },
+  IMS_SAMPLE_MULTIPLE_IMS: {
+    id: "IMS_SAMPLE_MULTIPLE_IMS",
+    description:
+      "Sample folders inside ims_* acquisition folders SHOULD contain only one .ims file; multiple .ims files suggest unintentional duplication.",
+  },
 
   // ---- derivatives level --------------------------------------------------
   DERIVATIVES_FOLDER_NAMING: {
