@@ -36,7 +36,7 @@ jobs:
       - name: Build web app
         run: cd web && npm run build
         env:
-          VITE_BASE: /mind-lightsheet-folder-validator/
+          VITE_BASE: /mind-lightsheet-validator/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
