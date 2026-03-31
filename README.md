@@ -198,7 +198,7 @@ Inside each tif_* or ims_* folder, directories are named by `lightsheet_id`:
 - lightsheet_id MUST contain no whitespace (e.g. spaces)
 
 - each of these folders must **only** contain folders named by lightsheet_id, and the same
-lightsheet_id must be used for the same samples across different folders, e.g. tif_4x, ims_4x_stitched.
+  lightsheet_id must be used for the same samples across different folders, e.g. tif_4x, ims_4x_stitched.
 - the validator should output an error if there are folders inside that violate lightsheet_id naming standards
 - the validator should warn if there are lightsheet_id names that do not appear in all folders
 - the validator should provide a list of lightsheet_id names inside each tif_* or ims_* folder
