@@ -93,7 +93,10 @@ function normalisePaths(node: FolderNode, parentPath: string): FolderNode {
   if (node.type === "directory" && node.name.endsWith(".zarr")) {
     return { ...node, path: currentPath, children: [] };
   }
-  const children = node.children?.map((c) => normalisePaths(c, currentPath));
+  // Hidden files and directories (names starting with '.') are ignored entirely.
+  const children = node.children
+    ?.filter((c) => !c.name.startsWith("."))
+    .map((c) => normalisePaths(c, currentPath));
   return { ...node, path: currentPath, children };
 }
 
@@ -193,9 +196,9 @@ function validateProjectLevel(
     addIssue(
       issues,
       "PROJECT_REQUIRES_README",
-      `Project directory '${projectNode.name}' is missing a required 'README.md' file.`,
+      `Project directory '${projectNode.name}' is missing a recommended 'README.md' file.`,
       path,
-      "error",
+      "warning",
       `Create a 'README.md' file inside '${path}'.`,
     );
   }

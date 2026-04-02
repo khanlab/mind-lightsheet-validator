@@ -132,7 +132,7 @@ export const RULES: Readonly<Record<string, Rule>> = {
   },
   PROJECT_REQUIRES_README: {
     id: "PROJECT_REQUIRES_README",
-    description: "Each project directory MUST contain a 'README.md' file.",
+    description: "Each project directory SHOULD contain a 'README.md' file (absence triggers a warning).",
   },
 
   // ---- raw folder level ---------------------------------------------------
