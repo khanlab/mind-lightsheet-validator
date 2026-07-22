@@ -44,10 +44,19 @@ export const RAW_FOLDER_PATTERN =
   /^(tif|ims)_(\d+)x(\d+)?(_[a-z0-9]+)*$/;
 
 /**
- * `bag_id` MUST be a single letter (a–z or A–Z).
+ * First token of `lightsheet_id` (the "bag token") accepts two formats:
+ *
+ *  - **Legacy** – one or more letters only (a–z or A–Z), e.g. `A`, `AB`, `a`, `ab`.
+ *    No leading digits.  Backward-compatible with all existing datasets.
+ *  - **Batched** – a positive integer with **no leading zeros** (batch ≥ 1)
+ *    immediately followed by one or more letters, e.g. `1A`, `12B`, `1AB`.
+ *    The numeric prefix indicates the batch number; the letter suffix is the bag_id.
+ *
+ * Rejected examples: `1` (digits only), `01A` (leading zero), `_a`, `""`.
+ *
  * @see README §6.1
  */
-export const BAG_ID_PATTERN = /^[a-zA-Z]$/;
+export const BAG_ID_PATTERN = /^(?:[1-9][0-9]*)?[a-zA-Z]+$/;
 
 /**
  * `subject_id` MUST contain letters and numbers only.
@@ -56,23 +65,22 @@ export const BAG_ID_PATTERN = /^[a-zA-Z]$/;
 export const SUBJECT_ID_PATTERN = /^[a-zA-Z0-9]+$/;
 
 /**
- * Full lightsheet_id = `<bag_id>_<subject_id>[_<modifier_id>]`
+ * Full lightsheet_id = `<bag_token>_<subject_id>[_<modifier_id>]`
  *
- * The complete name:
- *  - First segment (bag_id):    single letter
- *  - Second segment (subject_id): letters and numbers
- *  - Remaining segments (modifier_id): one or more non-whitespace, non-underscore characters
- *    (underscore is exclusively a segment separator)
- *  - No whitespace anywhere
+ * The bag token (first segment) accepts two formats:
+ *  - **Legacy**: one or more letters (e.g. `A`, `AB`, `a`).
+ *  - **Batched**: a positive integer (no leading zeros) immediately followed by
+ *    one or more letters (e.g. `1A`, `12B`, `1AB`).
  *
- * Using `[^\s_]+` instead of `\S+` for modifier segments avoids ReDoS – it
- * prevents the ambiguity that arises when `_` (the separator) is also allowed
- * inside a segment body.
+ * The remaining segments follow the same rules as before:
+ *  - Second segment (subject_id): letters and numbers only.
+ *  - Remaining segments (modifier_id): one or more non-whitespace, non-underscore chars.
+ *  - No whitespace anywhere.
  *
  * @see README §6
  */
 export const LIGHTSHEET_ID_PATTERN =
-  /^[a-zA-Z]_[a-zA-Z0-9]+(_[^\s_]+)*$/;
+  /^(?:[1-9][0-9]*)?[a-zA-Z]+_[a-zA-Z0-9]+(_[^\s_]+)*$/;
 
 /**
  * Derivatives subfolder naming SHOULD follow `<pipeline_name>_<version>`.
@@ -149,7 +157,8 @@ export const RULES: Readonly<Record<string, Rule>> = {
   },
   SAMPLE_BAG_ID_FORMAT: {
     id: "SAMPLE_BAG_ID_FORMAT",
-    description: "bag_id (first segment of lightsheet_id) MUST be a single letter (a–z or A–Z).",
+    description:
+      "bag_id token (first segment of lightsheet_id) MUST be either: one or more letters (legacy, e.g. A, AB, a), or a positive integer with no leading zeros followed by one or more letters (batched, e.g. 1A, 12B).",
   },
   SAMPLE_SUBJECT_ID_FORMAT: {
     id: "SAMPLE_SUBJECT_ID_FORMAT",

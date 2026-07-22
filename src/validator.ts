@@ -317,10 +317,10 @@ function validateSampleFolder(
       addIssue(
         issues,
         "SAMPLE_BAG_ID_FORMAT",
-        `Sample folder '${name}' has an invalid bag_id '${bagId}': must be a single letter (a–z or A–Z).`,
+        `Sample folder '${name}' has an invalid bag_id token '${bagId}': must be one or more letters (e.g. 'A', 'AB') for legacy format, or a positive integer with no leading zeros followed by letters (e.g. '1A', '12B') for batched format.`,
         path,
         "error",
-        `Use a single letter as bag_id (e.g. 'a', 'b', 'A').`,
+        `Use a letter-only token (e.g. 'A', 'AB') or a batch+letter token (e.g. '1A', '12B').`,
       );
     }
 
