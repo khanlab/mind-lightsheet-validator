@@ -142,12 +142,22 @@ describe("RAW_FOLDER_PATTERN", () => {
 });
 
 describe("BAG_ID_PATTERN", () => {
-  test.each(["a", "z", "A", "Z", "b"])("accepts valid bag_id: %s", (v) => {
+  test.each([
+    "a", "z", "A", "Z", "b",
+    "ab", "AB", "aa",      // multi-letter legacy bag_id
+    "1A", "12B", "1AB",    // batched: batch number + letters
+  ])("accepts valid bag_id token: %s", (v) => {
     expect(BAG_ID_PATTERN.test(v)).toBe(true);
   });
 
-  test.each(["ab", "1", "_a", "aa", ""])(
-    "rejects invalid bag_id: %s",
+  test.each([
+    "1",     // digits only, no alpha
+    "01A",   // leading zero in batch number
+    "0A",    // zero batch (must be >= 1)
+    "_a",    // leading underscore
+    "",      // empty string
+  ])(
+    "rejects invalid bag_id token: %s",
     (v) => {
       expect(BAG_ID_PATTERN.test(v)).toBe(false);
     },
@@ -179,16 +189,27 @@ describe("LIGHTSHEET_ID_PATTERN", () => {
     "b_598F2",
     "A_Sample1",
     "c_Mouse1_righthemi",
+    // multi-letter legacy bag_id
+    "AB_AS264",
+    "ab_AS134F1",
+    // batched format
+    "1A_AS264",
+    "12B_AS264",
+    "1AB_AS134F1",
   ])("accepts valid lightsheet_id: %s", (v) => {
     expect(LIGHTSHEET_ID_PATTERN.test(v)).toBe(true);
   });
 
   test.each([
-    "ab_AS134F1",      // bag_id too long
-    "1_AS134F1",       // bag_id is digit
+    "1_AS134F1",       // digits only (no alpha bag_id)
+    "01A_AS134F1",     // leading zero in batch number
+    "0A_AS134F1",      // zero batch (must be >= 1)
     "a_",              // missing subject_id
     "aAS134F1",        // missing underscore separator
     "a_AS 134F1",      // whitespace in subject_id
+    "A-AS264",         // wrong separator (dash instead of underscore)
+    "A__AS264",        // double underscore
+    "_AS264",          // empty bag_id token
     "",
   ])("rejects invalid lightsheet_id: %s", (v) => {
     expect(LIGHTSHEET_ID_PATTERN.test(v)).toBe(false);
@@ -456,21 +477,37 @@ describe("SAMPLE_BAG_ID_FORMAT rule", () => {
       ],
     });
 
-  test.each(["a_AS134F1", "A_Sample1", "z_Z1"])(
-    "passes for valid bag_id in sample '%s'",
+  test.each([
+    "a_AS134F1",
+    "A_Sample1",
+    "z_Z1",
+    // multi-letter legacy bag_id
+    "AB_AS264",
+    "ab_AS134F1",
+    // batched format
+    "1A_AS264",
+    "12B_AS264",
+    "1AB_AS134F1",
+  ])(
+    "passes for valid bag_id token in sample '%s'",
     (name) => {
       const report = validate(treeWithSample(name));
       expect(issuesFor(report.issues, "SAMPLE_BAG_ID_FORMAT")).toHaveLength(0);
     },
   );
 
-  test("reports error for multi-char bag_id", () => {
-    const report = validate(treeWithSample("ab_AS134F1"));
+  test("reports error for digits-only bag_id token (1_AS134F1)", () => {
+    const report = validate(treeWithSample("1_AS134F1"));
     expect(issuesFor(report.issues, "SAMPLE_BAG_ID_FORMAT")).toHaveLength(1);
   });
 
-  test("reports error for digit bag_id", () => {
-    const report = validate(treeWithSample("1_AS134F1"));
+  test("reports error for bag_id token with leading zero in batch (01A_AS264)", () => {
+    const report = validate(treeWithSample("01A_AS264"));
+    expect(issuesFor(report.issues, "SAMPLE_BAG_ID_FORMAT")).toHaveLength(1);
+  });
+
+  test("reports error for zero batch in bag_id token (0A_AS264)", () => {
+    const report = validate(treeWithSample("0A_AS264"));
     expect(issuesFor(report.issues, "SAMPLE_BAG_ID_FORMAT")).toHaveLength(1);
   });
 });
